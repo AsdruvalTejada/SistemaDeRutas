@@ -49,11 +49,13 @@ public class Parada {
         this.coory = coory;
     }
 
+    //Para hacer pruebas imprimiendo en la consola la parada
     @Override
     public String toString() {
         return nombre + " (" + id + ")";
     }
 
+    // Para comparar dos paradas a ver si son las mismas usando su ID
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -62,6 +64,9 @@ public class Parada {
         return Objects.equals(id, parada.id);
     }
 
+    // Genera una clave numérica única basada en el 'id' esto servirá para que el Grafo y los algoritmos de búsqueda
+    // puedan buscar y acceder a esta parada en las distintas colecciones (como HashMaps o HashSets) y
+    // llevar un registro de las paradas que ya visité
     @Override
     public int hashCode() {
         return Objects.hash(id);
