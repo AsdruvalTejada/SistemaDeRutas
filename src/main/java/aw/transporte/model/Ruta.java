@@ -68,6 +68,7 @@ public class Ruta {
     //Para hacer pruebas cuando queramos ver los datos de la ruta.
     @Override
     public String toString() {
+
         return "Ruta de " + idOrigen + " a " + idDestino + " (" + tiempoEnMin + " min)";
     }
 }
