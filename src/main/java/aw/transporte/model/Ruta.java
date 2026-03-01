@@ -1,20 +1,22 @@
 package aw.transporte.model;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Ruta {
     private String idOrigen;
     private String idDestino;
-    private double tiempoEnMin;
-    private double distanciaKm;
-    private double costo;
-    private int transbordos;
 
-    public Ruta(String idOrigen, String idDestino, double tiempoEnMin, double distanciaKm, double costo, int transbordos) {
+    private Map<CriterioPesos, Double> pesos;
+
+    public Ruta(String idOrigen, String idDestino, double tiempo, double distancia, double costo, int transbordos) {
         this.idOrigen = idOrigen;
         this.idDestino = idDestino;
-        this.tiempoEnMin = tiempoEnMin;
-        this.distanciaKm = distanciaKm;
-        this.costo = costo;
-        this.transbordos = transbordos;
+        this.pesos = new HashMap<>();
+        this.pesos.put(CriterioPesos.TIEMPO, tiempo);
+        this.pesos.put(CriterioPesos.DISTANCIA, distancia);
+        this.pesos.put(CriterioPesos.COSTO, costo);
+        this.pesos.put(CriterioPesos.TRANSBORDOS, (double) transbordos);
     }
 
     public String getIdOrigen() {
@@ -33,42 +35,27 @@ public class Ruta {
         this.idDestino = idDestino;
     }
 
-    public double getTiempoEnMin() {
-        return tiempoEnMin;
+    public Map<CriterioPesos, Double> getPesos() {
+        return pesos;
     }
 
-    public void setTiempoEnMin(double tiempoEnMin) {
-        this.tiempoEnMin = tiempoEnMin;
+    public void setPesos(Map<CriterioPesos, Double> pesos) {
+        this.pesos = pesos;
     }
 
-    public double getDistanciaKm() {
-        return distanciaKm;
+    public double getValorPeso(CriterioPesos criterio) {
+        // Esté método retorna el peso, y si por algún error no existe, retorna infinito para que Dijkstra lo ignore
+        return pesos.getOrDefault(criterio, Double.MAX_VALUE);
     }
 
-    public void setDistanciaKm(double distanciaKm) {
-        this.distanciaKm = distanciaKm;
-    }
-
-    public double getCosto() {
-        return costo;
-    }
-
-    public void setCosto(double costo) {
-        this.costo = costo;
-    }
-
-    public int getTransbordos() {
-        return transbordos;
-    }
-
-    public void setTransbordos(int transbordos) {
-        this.transbordos = transbordos;
+    // Método para modificar un peso específico si lo necesitan después
+    public void setValorPeso(CriterioPesos criterio, double valor) {
+        this.pesos.put(criterio, valor);
     }
 
     //Para hacer pruebas cuando queramos ver los datos de la ruta.
     @Override
     public String toString() {
-
-        return "Ruta de " + idOrigen + " a " + idDestino + " (" + tiempoEnMin + " min)";
+        return "Ruta de " + idOrigen + " a " + idDestino;
     }
 }

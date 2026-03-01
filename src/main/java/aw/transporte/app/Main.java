@@ -2,32 +2,41 @@ package aw.transporte.app;
 
 import aw.transporte.model.Parada;
 import aw.transporte.model.Ruta;
+import aw.transporte.model.CriterioPesos;
 import aw.transporte.structure.Grafo;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("---PRUEBAS---");
+        System.out.println("PRUEBAS DEL SISTEMA DE TRANSPORTE");
 
-        Grafo sistemaTransporte = new Grafo();
+        Grafo sistema = new Grafo();
 
-        Parada p1 = new Parada("P01", "Sede Central", 100.0, 200.0);
-        Parada p2 = new Parada("P02", "Parada Las Carreras", 150.0, 300.0);
+        // 1. Agregar Paradas
+        sistema.agregarParada(new Parada("P1", "Sede PUCMM", 10.0, 20.0));
+        sistema.agregarParada(new Parada("P2", "Monumento", 50.0, 60.0));
+        sistema.agregarParada(new Parada("P3", "Estadio Cibao", 30.0, 80.0));
+        System.out.println("Paradas registradas: " + sistema.getParadas().size()); // Debe ser 3
 
-        sistemaTransporte.agregarParada(p1);
-        sistemaTransporte.agregarParada(p2);
-        System.out.println("Paradas agregadas con éxito.");
+        // 2. Agregar Rutas (Origen, Destino, Tiempo, Distancia, Costo, Transbordos)
+        sistema.agregarRuta(new Ruta("P1", "P2", 15.0, 5.5, 35.0, 0));
+        sistema.agregarRuta(new Ruta("P2", "P3", 10.0, 3.2, 35.0, 0));
+        sistema.agregarRuta(new Ruta("P1", "P3", 30.0, 8.0, 50.0, 1)); // Ruta directa más larga
 
-        Ruta rutaIda = new Ruta("P01", "P02", 12.0, 3.5, 35.0, 0);
+        System.out.println("Rutas desde Sede PUCMM (P1): " + sistema.getAdyacencia().get("P1").size()); // Debe ser 2
 
-        sistemaTransporte.agregarRuta(rutaIda);
-        System.out.println("Ruta agregada con éxito.");
+        // 3. Probar los Pesos con tu Enum
+        Ruta rutaP1P2 = sistema.getAdyacencia().get("P1").get(0);
+        System.out.println("\nDetalles de la " + rutaP1P2 + ":");
+        System.out.println("- Tiempo: " + rutaP1P2.getValorPeso(CriterioPesos.TIEMPO) + " min");
+        System.out.println("- Costo: $" + rutaP1P2.getValorPeso(CriterioPesos.COSTO));
 
-        System.out.println("\n--- RESULTADOS ---");
-        System.out.println("Total de paradas en el sistema: " + sistemaTransporte.getParadas().size());
+        // 4. Probar Eliminación
+        System.out.println("\n--- Eliminando Parada P2 (Monumento) ---");
+        sistema.eliminarParada("P2");
 
-        int rutasDesdeP01 = sistemaTransporte.getAdyacencia().get("P01").size();
-        System.out.println("Rutas que salen: " + rutasDesdeP01);
+        System.out.println("Paradas restantes: " + sistema.getParadas().size()); // Debe ser 2
 
-        System.out.println(sistemaTransporte.getAdyacencia().get("P01").get(0));
+        // Como P2 ya no existe, la ruta P1->P2 también debió borrarse automáticamente
+        System.out.println("Rutas restantes desde Sede PUCMM (P1): " + sistema.getAdyacencia().get("P1").size()); // Debe ser 1 (solo la que va a P3)
     }
 }
