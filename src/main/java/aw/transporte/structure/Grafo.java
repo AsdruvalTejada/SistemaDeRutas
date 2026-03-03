@@ -73,8 +73,7 @@ public class Grafo {
         if (adyacencia.containsKey(idOrigen)) {
             List<Ruta> rutasSalientes = adyacencia.get(idOrigen);
             // El removeIf para buscar y eliminar la ruta que coincida con el destino
-            boolean delete = rutasSalientes.removeIf(ruta -> ruta.getIdDestino().equals(idDestino));
-            return delete;
+            return rutasSalientes.removeIf(ruta -> ruta.getIdDestino().equals(idDestino));
         }
         return false;
     }
