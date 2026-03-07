@@ -1,0 +1,31 @@
+{
+  "paradas": {
+    "P1": {
+      "id": "P1",
+      "nombre": "Sede PUCMM",
+      "coorx": 10.0,
+      "coory": 20.0
+    },
+    "P2": {
+      "id": "P2",
+      "nombre": "Monumento",
+      "coorx": 50.0,
+      "coory": 60.0
+    }
+  },
+  "adyacencia": {
+    "P1": [
+      {
+        "idOrigen": "P1",
+        "idDestino": "P2",
+        "pesos": {
+          "TRANSBORDOS": 0.0,
+          "COSTO": 35.0,
+          "TIEMPO": 15.0,
+          "DISTANCIA": 5.5
+        }
+      }
+    ],
+    "P2": []
+  }
+}
