@@ -36,4 +36,6 @@ public class Main {
         System.out.println("\n--- CERRANDO SISTEMA ---");
         dbGestor.saveGrafo(sistemaInfo);
     }
+
+    // Comentario de prueba para verificar Git
 }
