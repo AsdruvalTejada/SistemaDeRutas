@@ -20,9 +20,7 @@
         "idDestino": "P2",
         "pesos": {
           "TRANSBORDOS": 0.0,
-          "COSTO": 35.0,
           "TIEMPO": 15.0,
-          "DISTANCIA": 5.5
         }
       }
     ],
