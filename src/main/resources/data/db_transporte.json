@@ -1,0 +1,59 @@
+{
+  "paradas": {
+    "P1": {
+      "id": "P1",
+      "nombre": "Sede PUCMM",
+      "coorx": 10.0,
+      "coory": 20.0
+    },
+    "P2": {
+      "id": "P2",
+      "nombre": "Monumento",
+      "coorx": 50.0,
+      "coory": 60.0
+    },
+    "P3": {
+      "id": "P3",
+      "nombre": "Estadio Cibao",
+      "coorx": 30.0,
+      "coory": 80.0
+    }
+  },
+  "adyacencia": {
+    "P1": [
+      {
+        "idOrigen": "P1",
+        "idDestino": "P3",
+        "pesos": {
+          "TIEMPO": 35.0,
+          "TRANSBORDOS": 0.0,
+          "COSTO": 50.0,
+          "DISTANCIA": 10.0
+        }
+      },
+      {
+        "idOrigen": "P1",
+        "idDestino": "P2",
+        "pesos": {
+          "TIEMPO": 10.0,
+          "TRANSBORDOS": 0.0,
+          "COSTO": 25.0,
+          "DISTANCIA": 5.0
+        }
+      }
+    ],
+    "P2": [
+      {
+        "idOrigen": "P2",
+        "idDestino": "P3",
+        "pesos": {
+          "TIEMPO": 5.0,
+          "TRANSBORDOS": 0.0,
+          "COSTO": 15.0,
+          "DISTANCIA": 3.0
+        }
+      }
+    ],
+    "P3": []
+  }
+}

@@ -37,25 +37,24 @@ public class Main {
 
         // --- PRUEBA DEL ALGORITMO DIJKSTRA (Estudiante B) ---
 
+        // --- PRUEBA DE LOS 3 ALGORITMOS MAESTROS ---
         System.out.println("\n--- INICIANDO CALCULADORA DE RUTAS ---");
-
         CalculadoraRutas calculadora = new CalculadoraRutas();
 
-        // Le pedimos que calcule la ruta más corta por TIEMPO desde P1 hasta P3
-        CalculadoraRutas.ResultadoCamino resultado =
-                calculadora.dijkstra(sistemaInfo, "P1", "P3", CriterioPesos.TIEMPO);
+        // 1. DIJKSTRA (Optimizar por TIEMPO)
+        System.out.println("\n>> Buscando ruta más RÁPIDA (Tiempo) [Usa Dijkstra]:");
+        CalculadoraRutas.ResultadoCamino resTiempo = calculadora.calcularRutaIdeal(sistemaInfo, "P1", "P3", CriterioPesos.TIEMPO);
+        System.out.println("Camino: " + String.join(" -> ", resTiempo.paradas) + " | Minutos: " + resTiempo.costoTotal);
 
-        // Imprimimos el resultado de la inteligencia
-        if (resultado != null) {
-            System.out.println("✅ ¡Ruta encontrada!");
-            System.out.println("Camino a seguir: " + String.join(" -> ", resultado.paradas));
-            System.out.println("Tiempo total estimado: " + resultado.costoTotal + " minutos.");
-        } else {
-            System.out.println("❌ No hay conexión posible entre esas paradas.");
-        }
+        // 2. BFS (Optimizar por TRANSBORDOS)
+        System.out.println("\n>> Buscando ruta con MENOS SALTOS (Transbordos) [Usa BFS]:");
+        CalculadoraRutas.ResultadoCamino resSaltos = calculadora.calcularRutaIdeal(sistemaInfo, "P1", "P3", CriterioPesos.TRANSBORDOS);
+        System.out.println("Camino: " + String.join(" -> ", resSaltos.paradas) + " | Transbordos: " + resSaltos.costoTotal);
 
-        System.out.println("\nTotal de paradas actuales en el sistema: " + sistemaInfo.getParadas().size());
-
+        // 3. BELLMAN-FORD (Optimizar por COSTO)
+        System.out.println("\n>> Buscando ruta más BARATA (Costo) [Usa Bellman-Ford]:");
+        CalculadoraRutas.ResultadoCamino resCosto = calculadora.calcularRutaIdeal(sistemaInfo, "P1", "P3", CriterioPesos.COSTO);
+        System.out.println("Camino: " + String.join(" -> ", resCosto.paradas) + " | $: " + resCosto.costoTotal);
         // Al terminar todo, guardamos el estado actual en el JSON
         System.out.println("\n--- CERRANDO SISTEMA ---");
         dbGestor.saveGrafo(sistemaInfo);
