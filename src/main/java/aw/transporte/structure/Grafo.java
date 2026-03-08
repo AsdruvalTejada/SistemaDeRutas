@@ -49,14 +49,17 @@ public class Grafo {
     }
 
     public boolean eliminarParada(String id) {
-        if (!paradas.containsKey(id)) {
-            return false; // No existe
-        }
+        if (!paradas.containsKey(id)) return false;
+
+        // 1. Eliminar la parada y su lista de rutas salientes
         paradas.remove(id);
         adyacencia.remove(id);
-        // Aquí se eliminan todas las rutas que entraban a esta parada desde otras
-        for (List<Ruta> rutas : adyacencia.values()) {
-            rutas.removeIf(ruta -> ruta.getIdDestino().equals(id));
+
+        // 2. Limpiar las rutas que entraban a esta parada desde CUALQUIER otra
+        for (Parada p : paradas.values()) {
+            if (p.getRutas() != null) {
+                p.getRutas().removeIf(ruta -> ruta.getIdDestino().equals(id));
+            }
         }
         return true;
     }
@@ -76,5 +79,16 @@ public class Grafo {
             return rutasSalientes.removeIf(ruta -> ruta.getIdDestino().equals(idDestino));
         }
         return false;
+    }
+
+    public void agregarRuta(String origenId, String destinoId, double tiempo, double costo, double distancia) {
+        if (paradas.containsKey(origenId) && paradas.containsKey(destinoId)) {
+            Parada origen = paradas.get(origenId);
+
+            Ruta nuevaRuta = new Ruta(origenId, destinoId, tiempo, distancia, costo);
+
+            origen.getRutas().add(nuevaRuta);
+            System.out.println("Ruta agregada logicamente.");
+        }
     }
 }

@@ -8,6 +8,7 @@ import java.util.*;
 
 public class CalculadoraRutas {
 
+    
     public static class ResultadoCamino {
         public List<String> paradas;
         public double costoTotal;

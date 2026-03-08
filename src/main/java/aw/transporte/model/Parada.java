@@ -1,4 +1,6 @@
 package aw.transporte.model;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class Parada {
@@ -6,6 +8,8 @@ public class Parada {
     private String nombre;
     private double coorx;
     private double coory;
+    private List<Ruta> rutas;
+
 
     public Parada() {
     }
@@ -15,6 +19,15 @@ public class Parada {
         this.nombre = nombre;
         this.coorx = x;
         this.coory = y;
+        this.rutas = new ArrayList<>();
+    }
+
+    // En Parada.java
+    public List<Ruta> getRutas() {
+        if (this.rutas == null) {
+            this.rutas = new ArrayList<>();
+        }
+        return rutas;
     }
 
     public String getId() {
