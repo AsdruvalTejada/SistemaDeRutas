@@ -64,14 +64,6 @@ public class Grafo {
         return true;
     }
 
-    public void agregarRuta(Ruta r) {
-        if (adyacencia.containsKey(r.getIdOrigen()) && paradas.containsKey(r.getIdDestino())) {
-            adyacencia.get(r.getIdOrigen()).add(r);
-        } else {
-            System.out.println("Origen o destino inválido.");
-        }
-    }
-
     public boolean eliminarRuta(String idOrigen, String idDestino) {
         if (adyacencia.containsKey(idOrigen)) {
             List<Ruta> rutasSalientes = adyacencia.get(idOrigen);
@@ -83,11 +75,17 @@ public class Grafo {
 
     public void agregarRuta(String origenId, String destinoId, double tiempo, double costo, double distancia) {
         if (paradas.containsKey(origenId) && paradas.containsKey(destinoId)) {
-            Parada origen = paradas.get(origenId);
 
-            Ruta nuevaRuta = new Ruta(origenId, destinoId, tiempo, distancia, costo);
-            origen.getRutas().add(nuevaRuta);
-            System.out.println("Ruta agregada logicamente.");
+            boolean existe = adyacencia.get(origenId).stream().anyMatch(r -> r.getIdDestino().equals(destinoId));
+
+            if (!existe) {
+                Ruta nuevaRuta = new Ruta(origenId, destinoId, tiempo, distancia, costo);
+                adyacencia.get(origenId).add(nuevaRuta);
+                paradas.get(origenId).getRutas().add(nuevaRuta);
+                System.out.println("Conexión establecida: " + origenId + " -> " + destinoId);
+            } else {
+                System.out.println("La ruta " + origenId + " -> " + destinoId + " ya existe.");
+            }
         }
     }
 }
