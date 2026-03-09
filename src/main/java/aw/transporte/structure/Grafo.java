@@ -86,7 +86,6 @@ public class Grafo {
             Parada origen = paradas.get(origenId);
 
             Ruta nuevaRuta = new Ruta(origenId, destinoId, tiempo, distancia, costo);
-
             origen.getRutas().add(nuevaRuta);
             System.out.println("Ruta agregada logicamente.");
         }

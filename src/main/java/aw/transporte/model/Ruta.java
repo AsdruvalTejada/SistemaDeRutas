@@ -30,4 +30,5 @@ public class Ruta {
     public double getValorPeso(CriterioPesos criterio) {
         return pesos.getOrDefault(criterio, 0.0);
     }
+
 }
