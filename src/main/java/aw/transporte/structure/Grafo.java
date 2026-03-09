@@ -64,6 +64,8 @@ public class Grafo {
         return true;
     }
 
+
+
     public boolean eliminarRuta(String idOrigen, String idDestino) {
         if (adyacencia.containsKey(idOrigen)) {
             List<Ruta> rutasSalientes = adyacencia.get(idOrigen);
@@ -87,5 +89,13 @@ public class Grafo {
                 System.out.println("La ruta " + origenId + " -> " + destinoId + " ya existe.");
             }
         }
+    }
+
+    public void reconstruirAdyacenciaDesdeParadas() {
+        for (Parada p : paradas.values()) {
+            // Aseguramos que la lista exista en el mapa de adyacencia
+            adyacencia.put(p.getId(), new ArrayList<>(p.getRutas()));
+        }
+        System.out.println("Adyacencia sincronizada.");
     }
 }
