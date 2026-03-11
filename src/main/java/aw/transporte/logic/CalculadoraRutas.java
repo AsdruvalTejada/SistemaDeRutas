@@ -73,7 +73,7 @@ public class CalculadoraRutas {
 
         int V = grafo.getParadas().size();
 
-        // Relajar todas las aristas V - 1 veces
+        // 1. Relajar todas las aristas V - 1 veces
         for (int i = 0; i < V - 1; i++) {
             for (String u : grafo.getAdyacencia().keySet()) {
                 for (Ruta ruta : grafo.getAdyacencia().get(u)) {
@@ -87,6 +87,22 @@ public class CalculadoraRutas {
                 }
             }
         }
+
+        // 2. 🔥 NUEVO: Verificación de Ciclos Negativos (Blindaje contra bucles infinitos) 🔥
+        for (String u : grafo.getAdyacencia().keySet()) {
+            for (Ruta ruta : grafo.getAdyacencia().get(u)) {
+                String v = ruta.getIdDestino();
+                double pesoArista = ruta.getValorPeso(criterio);
+
+                // Si después de V-1 iteraciones sigo encontrando rutas más baratas, hay un ciclo infinito
+                if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista < distancias.get(v)) {
+                    System.out.println("🚨 ALERTA: ¡Ciclo negativo detectado entre " + u + " y " + v + "! Abortando cálculo.");
+                    return null; // Retornamos null para que la interfaz sepa que falló y NO haga el while infinito
+                }
+            }
+        }
+
+        // 3. Si todo está seguro, reconstruimos el camino
         return reconstruirCamino(predecesores, distancias, idOrigen, idDestino);
     }
 

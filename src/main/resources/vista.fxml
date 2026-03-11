@@ -20,10 +20,8 @@
                      <VBox spacing="15.0" style="-fx-padding: 20 0 0 0;">
                         <Label text="Guía rápida:" textFill="#57606f" style="-fx-font-weight: bold;" />
                         <Label text="1. Haz clic en el mapa para situar un punto." textFill="#747d8c" wrapText="true" />
-                        <TextField fx:id="txtParadaId" promptText="ID (Ej: P1)" style="-fx-background-radius: 5; -fx-padding: 8;" />
                         <TextField fx:id="txtParadaNombre" promptText="Nombre del Lugar" style="-fx-background-radius: 5; -fx-padding: 8;" />
                         <Button fx:id="btnAgregarParada" maxWidth="Infinity" style="-fx-background-color: #4a69bd; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Guardar en Mapa" />
-                        <Button fx:id="btnEliminarParada" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #eb4d4b; -fx-border-color: #eb4d4b; -fx-border-radius: 5; -fx-cursor: hand;" text="Eliminar Parada (ID)" />
                      </VBox>
                   </Tab>
                   <Tab text="Conexiones">

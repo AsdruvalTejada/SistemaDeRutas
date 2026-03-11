@@ -14,6 +14,29 @@ public class Grafo {
         this.adyacencia = new HashMap<>();
     }
 
+    // Generador automático de IDs (Ej: Si existe P1, P2 y P5, el siguiente será P6)
+    public String generarId() {
+        int maxId = 0;
+
+        for (String id : paradas.keySet()) {
+            // Verificamos que el ID empiece con "P"
+            if (id.startsWith("P")) {
+                try {
+                    // Extraemos el número después de la "P" y buscamos el más grande
+                    int numero = Integer.parseInt(id.substring(1));
+                    if (numero > maxId) {
+                        maxId = numero;
+                    }
+                } catch (NumberFormatException e) {
+                    // Si por alguna razón hay un ID raro, lo ignoramos
+                }
+            }
+        }
+
+        // Retornamos la letra "P" más el siguiente número disponible
+        return "P" + (maxId + 1);
+    }
+
     public Map<String, Parada> getParadas() {
         return paradas;
     }
@@ -55,11 +78,9 @@ public class Grafo {
         paradas.remove(id);
         adyacencia.remove(id);
 
-        // 2. Limpiar las rutas que entraban a esta parada desde CUALQUIER otra
-        for (Parada p : paradas.values()) {
-            if (p.getRutas() != null) {
-                p.getRutas().removeIf(ruta -> ruta.getIdDestino().equals(id));
-            }
+        // 2. Limpiar las rutas que entraban a esta parada buscando directamente en la adyacencia
+        for (List<Ruta> rutasSalientes : adyacencia.values()) {
+            rutasSalientes.removeIf(ruta -> ruta.getIdDestino().equals(id));
         }
         return true;
     }
@@ -77,25 +98,15 @@ public class Grafo {
 
     public void agregarRuta(String origenId, String destinoId, double tiempo, double costo, double distancia) {
         if (paradas.containsKey(origenId) && paradas.containsKey(destinoId)) {
-
             boolean existe = adyacencia.get(origenId).stream().anyMatch(r -> r.getIdDestino().equals(destinoId));
 
             if (!existe) {
                 Ruta nuevaRuta = new Ruta(origenId, destinoId, tiempo, distancia, costo);
-                adyacencia.get(origenId).add(nuevaRuta);
-                paradas.get(origenId).getRutas().add(nuevaRuta);
+                adyacencia.get(origenId).add(nuevaRuta); // Solo guardamos en la adyacencia
                 System.out.println("Conexión establecida: " + origenId + " -> " + destinoId);
             } else {
                 System.out.println("La ruta " + origenId + " -> " + destinoId + " ya existe.");
             }
         }
-    }
-
-    public void reconstruirAdyacenciaDesdeParadas() {
-        for (Parada p : paradas.values()) {
-            // Aseguramos que la lista exista en el mapa de adyacencia
-            adyacencia.put(p.getId(), new ArrayList<>(p.getRutas()));
-        }
-        System.out.println("Adyacencia sincronizada.");
     }
 }

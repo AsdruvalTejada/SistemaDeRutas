@@ -21,7 +21,7 @@ import java.util.List;
 public class AppController {
 
     @FXML private TextField txtParadaId, txtParadaNombre, txtRutaOrigen, txtRutaDestino, txtRutaTiempo, txtRutaCosto, txtCalcOrigen, txtCalcDestino;
-    @FXML private Button btnAgregarParada, btnEliminarParada, btnAgregarRuta, btnEliminarRuta, btnCalcular;
+    @FXML private Button btnAgregarParada, btnAgregarRuta, btnEliminarRuta, btnCalcular;
     @FXML private ComboBox<CriterioPesos> comboCriterio;
     @FXML private Label lblEstado;
     @FXML private Pane graphPane;
@@ -54,7 +54,6 @@ public class AppController {
         });
 
         btnAgregarParada.setOnAction(e -> handleAgregarParada());
-        btnEliminarParada.setOnAction(e -> handleEliminarParada());
         btnAgregarRuta.setOnAction(e -> handleAgregarRuta());
         btnEliminarRuta.setOnAction(e -> handleEliminarRuta());
         btnCalcular.setOnAction(e -> handleCalcularRuta());
@@ -72,16 +71,6 @@ public class AppController {
         txtRutaDestino.clear();
         txtRutaTiempo.clear();
         txtRutaCosto.clear();
-    }
-
-    private void handleEliminarParada() {
-        String id = txtParadaId.getText().trim();
-        if (sistemaInfo.eliminarParada(id)) {
-            dbGestor.saveGrafo(sistemaInfo);
-            updateStatus("Parada " + id + " eliminada.");
-            dibujarGrafoVisual();
-            limpiarCamposParadas();
-        } else { updateStatus("ID no existe."); }
     }
 
     private void handleEliminarRuta() {
@@ -105,12 +94,23 @@ public class AppController {
 
     private void handleAgregarParada() {
         try {
-            sistemaInfo.agregarParada(new Parada(txtParadaId.getText(), txtParadaNombre.getText(), clickX, clickY));
+            // 1. Le pedimos al Grafo que genere un ID seguro y automático
+            String nuevoId = sistemaInfo.generarId();
+
+            // 2. Creamos la parada con ese ID generado
+            sistemaInfo.agregarParada(new Parada(nuevoId, txtParadaNombre.getText(), clickX, clickY));
             dbGestor.saveGrafo(sistemaInfo);
             dibujarGrafoVisual();
-            updateStatus("Parada guardada.");
-            limpiarCamposParadas();
-        } catch (Exception e) { updateStatus("Error al guardar parada."); }
+
+            updateStatus("Parada guardada automáticamente como: " + nuevoId);
+
+            // 3. Limpiamos solo el nombre
+            txtParadaNombre.clear();
+            if (txtParadaId != null) txtParadaId.clear(); // Por si aún no lo borras del FXML
+
+        } catch (Exception e) {
+            updateStatus("Error al guardar parada.");
+        }
     }
 
     private void handleAgregarRuta() {
@@ -159,6 +159,31 @@ public class AppController {
             double y = p.getCoory()*ZOOM+100;
 
             Circle c = new Circle(x, y, 12, Color.web("#1e3799"));
+            // Evento para borrar la parada con Clic Derecho
+            c.setOnMouseClicked(event -> {
+                if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
+
+                    // 1. Creamos la ventana de confirmación
+                    Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+                    alerta.setTitle("Confirmar Eliminación");
+                    alerta.setHeaderText("¿Eliminar la parada " + p.getNombre() + "?");
+                    alerta.setContentText("Esta acción es irreversible y también borrará todas las rutas conectadas a esta parada.");
+
+                    // 2. Mostramos la ventana y esperamos a que el usuario responda
+                    java.util.Optional<ButtonType> resultado = alerta.showAndWait();
+
+                    // 3. Si el usuario presiona "OK", procedemos con la destrucción
+                    if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
+                        if (sistemaInfo.eliminarParada(p.getId())) {
+                            dbGestor.saveGrafo(sistemaInfo);
+                            dibujarGrafoVisual(); // Redibujamos para que desaparezca
+                            updateStatus("Parada eliminada: " + p.getNombre());
+                        }
+                    } else {
+                        updateStatus("Eliminación cancelada.");
+                    }
+                }
+            });
             c.setStroke(Color.WHITE); c.setStrokeWidth(2);
 
             Label nameLabel = new Label(p.getNombre());

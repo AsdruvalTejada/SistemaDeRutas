@@ -8,26 +8,12 @@ public class Parada {
     private String nombre;
     private double coorx;
     private double coory;
-    private List<Ruta> rutas;
-
-
-    public Parada() {
-    }
 
     public Parada(String id, String nombre, double x, double y) {
         this.id = id;
         this.nombre = nombre;
         this.coorx = x;
         this.coory = y;
-        this.rutas = new ArrayList<>();
-    }
-
-    // En Parada.java
-    public List<Ruta> getRutas() {
-        if (this.rutas == null) {
-            this.rutas = new ArrayList<>();
-        }
-        return rutas;
     }
 
     public String getId() {
