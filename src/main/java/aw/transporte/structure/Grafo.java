@@ -22,13 +22,13 @@ public class Grafo {
             // Verificamos que el ID empiece con "P"
             if (id.startsWith("P")) {
                 try {
-                    // Extraemos el número después de la "P" y buscamos el más grande
+                    //Extraemos el número después de la "P" y buscamos el más grande
                     int numero = Integer.parseInt(id.substring(1));
                     if (numero > maxId) {
                         maxId = numero;
                     }
                 } catch (NumberFormatException e) {
-                    // Si por alguna razón hay un ID raro, lo ignoramos
+                    //Si por alguna razón hay un ID raro, lo ignoramos
                 }
             }
         }

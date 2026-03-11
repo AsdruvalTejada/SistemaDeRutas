@@ -14,6 +14,9 @@ public class Main extends Application {
         Scene scene = new Scene(loader.load());
         stage.setTitle("Sistema de Rutas");
         stage.setScene(scene);
+
+        //Forzamos a que la aplicación inicie en pantalla completa para mejor visualización del mapa
+        stage.setMaximized(true);
         stage.show();
     }
 

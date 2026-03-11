@@ -21,9 +21,10 @@ public class CalculadoraRutas {
 
     private record NodoDistancia(String idParada, double distanciaAcumulada) {}
 
-    // Este Método es el que llamará la Interfaz Gráfica)
+    // Este es nuestro "cerebro" o puente principal.
+    // La interfaz gráfica nos manda los datos del viaje y aquí decidimos qué algoritmo es el ideal para el trabajo.
     public ResultadoCamino calcularRutaIdeal(Grafo grafo, String origen, String destino, CriterioPesos criterio) {
-        // Dependiendo de lo que pida el usuario, usamos el algoritmo matemáticamente correcto
+        //Dependiendo de lo que pida el usuario, usamos el algoritmo matemáticamente correcto
         return switch (criterio) {
             case TIEMPO, DISTANCIA -> dijkstra(grafo, origen, destino, criterio);
             case TRANSBORDOS -> bfsTransbordos(grafo, origen, destino);
@@ -88,16 +89,16 @@ public class CalculadoraRutas {
             }
         }
 
-        // 2. 🔥 NUEVO: Verificación de Ciclos Negativos (Blindaje contra bucles infinitos) 🔥
+        //2. Verificación de Ciclos Negativos para evitar bucles infinitos
         for (String u : grafo.getAdyacencia().keySet()) {
             for (Ruta ruta : grafo.getAdyacencia().get(u)) {
                 String v = ruta.getIdDestino();
                 double pesoArista = ruta.getValorPeso(criterio);
 
-                // Si después de V-1 iteraciones sigo encontrando rutas más baratas, hay un ciclo infinito
+                //Si después de V-1 iteraciones sigo encontrando rutas más baratas, hay un ciclo infinito
                 if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista < distancias.get(v)) {
-                    System.out.println("🚨 ALERTA: ¡Ciclo negativo detectado entre " + u + " y " + v + "! Abortando cálculo.");
-                    return null; // Retornamos null para que la interfaz sepa que falló y NO haga el while infinito
+                    System.out.println("¡Ciclo negativo detectado entre " + u + " y " + v);
+                    return null; //Retornamos null para que la interfaz sepa que falló y no haga el while infinito
                 }
             }
         }

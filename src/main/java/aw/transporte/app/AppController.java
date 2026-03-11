@@ -93,35 +93,77 @@ public class AppController {
     }
 
     private void handleAgregarParada() {
+        // Extraemos el texto y le quitamos los espacios en blanco al inicio o final con trim()
+        String nombreParada = txtParadaNombre.getText().trim();
+
+        // Evitar paradas sin nombre
+        if (nombreParada.isEmpty()) {
+            updateStatus("Olvidaste ponerle nombre a la parada.");
+            return; // Cortamos la ejecución aquí mismo para que no intente guardarla
+        }
+
         try {
-            // 1. Le pedimos al Grafo que genere un ID seguro y automático
             String nuevoId = sistemaInfo.generarId();
 
-            // 2. Creamos la parada con ese ID generado
-            sistemaInfo.agregarParada(new Parada(nuevoId, txtParadaNombre.getText(), clickX, clickY));
+            // Si pasó la validación, procedemos a crearla y guardarla en la base de datos
+            sistemaInfo.agregarParada(new Parada(nuevoId, nombreParada, clickX, clickY));
             dbGestor.saveGrafo(sistemaInfo);
             dibujarGrafoVisual();
 
-            updateStatus("Parada guardada automáticamente como: " + nuevoId);
+            // Refrescamos los desplegables para que la nueva parada aparezca de inmediato
+            actualizarComboBoxesParadas();
 
-            // 3. Limpiamos solo el nombre
+            updateStatus("Parada guardada automáticamente como: " + nuevoId);
             txtParadaNombre.clear();
-            if (txtParadaId != null) txtParadaId.clear(); // Por si aún no lo borras del FXML
 
         } catch (Exception e) {
-            updateStatus("Error al guardar parada.");
+            updateStatus("Error crítico al guardar la parada.");
         }
     }
 
     private void handleAgregarRuta() {
         try {
-            sistemaInfo.agregarRuta(txtRutaOrigen.getText(), txtRutaDestino.getText(),
-                    Double.parseDouble(txtRutaTiempo.getText()), Double.parseDouble(txtRutaCosto.getText()), 0);
+            Parada origen = comboRutaOrigen.getValue();
+            Parada destino = comboRutaDestino.getValue();
+
+            //Validamos que el usuario realmente haya seleccionado algo en las listas
+            if (origen == null || destino == null) {
+                updateStatus("Seleccione origen y destino.");
+                return;
+            }
+
+            //Prevenimos auto-ciclos (que una parada apunte a sí misma)
+            if (origen.getId().equals(destino.getId())) {
+                updateStatus("El origen y destino no pueden ser el mismo.");
+                return;
+            }
+
+            //Leemos los números ingresados
+            double tiempo = Double.parseDouble(txtRutaTiempo.getText());
+            double costo = Double.parseDouble(txtRutaCosto.getText());
+
+            //Seguridad contra tiempos negativos
+            if (tiempo < 0) {
+                updateStatus("El tiempo de viaje no puede ser negativo.");
+                return;
+            }
+
+            //Todo en orden, procedemos a conectar las paradas
+            sistemaInfo.agregarRuta(origen.getId(), destino.getId(), tiempo, costo, 0);
             dbGestor.saveGrafo(sistemaInfo);
             dibujarGrafoVisual();
-            updateStatus("Conexión creada.");
-            limpiarCamposRutas();
-        } catch (Exception e) { updateStatus("Error: Verifica los datos de la ruta."); }
+            updateStatus("Conexión creada exitosamente.");
+
+            //Limpiamos los campos para la siguiente ruta
+            txtRutaTiempo.clear();
+            txtRutaCosto.clear();
+
+        } catch (NumberFormatException e) {
+            //Si el usuario escribe "quince" en lugar de "15", caemos aquí
+            updateStatus("Error: Solo se aceptan valores numéricos en Tiempo y Costo.");
+        } catch (Exception e) {
+            updateStatus("Error inesperado al conectar.");
+        }
     }
 
     private void handleCalcularRuta() {
@@ -159,7 +201,7 @@ public class AppController {
             double y = p.getCoory()*ZOOM+100;
 
             Circle c = new Circle(x, y, 12, Color.web("#1e3799"));
-            // Evento para borrar la parada con Clic Derecho
+            //Evento para borrar la parada con Clic Derecho
             c.setOnMouseClicked(event -> {
                 if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
 

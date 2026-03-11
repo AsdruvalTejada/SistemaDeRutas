@@ -13,11 +13,11 @@ public class JsonGestor {
 
     private static final String JSON_PATH = "src/main/resources/data/db_transporte.json";
 
-    // Aquí llamamos el Json de Google
+    //Aquí llamamos el Json de Google
     private Gson gsonTool;
 
     public JsonGestor() {
-        // setPrettyPrinting hace que el JSON no sea una sola línea infinita, sino que tenga saltos y se vea "bonito"
+        //setPrettyPrinting hace que el JSON no sea una sola línea infinita, sino que tenga saltos y se vea "bonito"
         this.gsonTool = new GsonBuilder().setPrettyPrinting().create();
     }
 
@@ -25,7 +25,7 @@ public class JsonGestor {
     public void saveGrafo(Grafo mainGrafo) {
         File docFile = new File(JSON_PATH);
 
-        // 🔥 LA MAGIA: Esto verifica si las carpetas "resources/data" existen. Si no, las crea al instante.
+        //Esto verifica si las carpetas "resources/data" existen. Si no, las crea al instante.
         if (docFile.getParentFile() != null) {
             //noinspection ResultOfMethodCallIgnored
             docFile.getParentFile().mkdirs();
@@ -44,10 +44,10 @@ public class JsonGestor {
     public Grafo fetchGrafoData() {
         File docFile = new File(JSON_PATH);
 
-        // Verificamos si el archivo ya existe antes de intentar leerlo
+        //Verificamos si el archivo ya existe antes de intentar leerlo
         if (docFile.exists()) {
             try (FileReader fReader = new FileReader(docFile)) {
-                // Reconstruye el objeto Grafo a partir del texto JSON
+                //Reconstruye el objeto Grafo a partir del texto JSON
                 Grafo loadedGrafo = gsonTool.fromJson(fReader, Grafo.class);
                 System.out.println("Grafo cargado. Paradas recuperadas: " + loadedGrafo.getParadas().size());
                 return loadedGrafo;
