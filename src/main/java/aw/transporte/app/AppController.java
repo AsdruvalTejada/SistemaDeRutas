@@ -7,6 +7,7 @@ import aw.transporte.model.Ruta;
 import aw.transporte.structure.Grafo;
 import aw.transporte.logic.CalculadoraRutas;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
@@ -17,12 +18,18 @@ import javafx.scene.shape.Line;
 import javafx.scene.shape.Polygon;
 import java.util.Map;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 public class AppController {
 
-    @FXML private TextField txtParadaId, txtParadaNombre, txtRutaOrigen, txtRutaDestino, txtRutaTiempo, txtRutaCosto, txtCalcOrigen, txtCalcDestino;
+    @FXML private TextField txtParadaNombre, txtRutaTiempo, txtRutaCosto;
     @FXML private Button btnAgregarParada, btnAgregarRuta, btnEliminarRuta, btnCalcular;
     @FXML private ComboBox<CriterioPesos> comboCriterio;
+
+    // LAS NUEVAS VARIABLES DE COMBOBOX
+    @FXML private ComboBox<Parada> comboRutaOrigen, comboRutaDestino, comboCalcOrigen, comboCalcDestino;
+
     @FXML private Label lblEstado;
     @FXML private Pane graphPane;
     @FXML private AnchorPane anchorMapa;
@@ -59,32 +66,83 @@ public class AppController {
         btnCalcular.setOnAction(e -> handleCalcularRuta());
 
         dibujarGrafoVisual();
+        actualizarComboBoxesParadas(); // Cargamos las listas al iniciar
+        aplicarFijadorDeTexto(comboRutaOrigen, "Seleccione Origen");
+        aplicarFijadorDeTexto(comboRutaDestino, "Seleccione Destino");
+        aplicarFijadorDeTexto(comboCalcOrigen, "Punto de Partida");
+        aplicarFijadorDeTexto(comboCalcDestino, "Punto de Llegada");
+        aplicarFijadorDeTextoCriterio(comboCriterio, "Criterio de Viaje");
+    }
+
+    // EL MOTOR QUE ACTUALIZA LAS LISTAS
+    private void actualizarComboBoxesParadas() {
+        List<Parada> listaParadas = new ArrayList<>(sistemaInfo.getParadas().values());
+        listaParadas.sort(Comparator.comparing(Parada::getNombre));
+        ObservableList<Parada> opciones = FXCollections.observableArrayList(listaParadas);
+
+        if (comboRutaOrigen != null) comboRutaOrigen.setItems(opciones);
+        if (comboRutaDestino != null) comboRutaDestino.setItems(opciones);
+        if (comboCalcOrigen != null) comboCalcOrigen.setItems(opciones);
+        if (comboCalcDestino != null) comboCalcDestino.setItems(opciones);
     }
 
     private void limpiarCamposParadas() {
-        txtParadaId.clear();
         txtParadaNombre.clear();
     }
 
     private void limpiarCamposRutas() {
-        txtRutaOrigen.clear();
-        txtRutaDestino.clear();
+        comboRutaOrigen.setValue(null);
+        comboRutaDestino.setValue(null);
         txtRutaTiempo.clear();
         txtRutaCosto.clear();
     }
 
+    private void aplicarFijadorDeTexto(ComboBox<Parada> combo, String textoFantasma) {
+        combo.setButtonCell(new ListCell<Parada>() {
+            @Override
+            protected void updateItem(Parada item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(textoFantasma); // Si está vacío, fuerza el texto
+                } else {
+                    setText(item.toString()); // Si tiene una parada, muestra su nombre
+                }
+            }
+        });
+    }
+
+    private void aplicarFijadorDeTextoCriterio(ComboBox<CriterioPesos> combo, String textoFantasma) {
+        combo.setButtonCell(new ListCell<CriterioPesos>() {
+            @Override
+            protected void updateItem(CriterioPesos item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(textoFantasma);
+                } else {
+                    setText(item.toString());
+                }
+            }
+        });
+    }
+
+    private void limpiarCamposViaje() {
+        comboCalcOrigen.setValue(null);
+        comboCalcDestino.setValue(null);
+        comboCriterio.setValue(null);
+    }
+
     private void handleEliminarRuta() {
-        String ori = txtRutaOrigen.getText().trim();
-        String des = txtRutaDestino.getText().trim();
+        Parada origen = comboRutaOrigen.getValue();
+        Parada destino = comboRutaDestino.getValue();
 
-        // Ejecuta el código de tu amigo
-        if (sistemaInfo.eliminarRuta(ori, des)) {
+        if (origen == null || destino == null) {
+            updateStatus(" Seleccione origen y destino para eliminar.");
+            return;
+        }
+
+        if (sistemaInfo.eliminarRuta(origen.getId(), destino.getId())) {
             dbGestor.saveGrafo(sistemaInfo);
-
-            // AHORA SÍ: Como el dibujo lee de la adyacencia y tu amigo borró de ahí,
-            // al llamar a esto la flecha DESAPARECERÁ del mapa.
             dibujarGrafoVisual();
-
             updateStatus("Línea eliminada.");
             limpiarCamposRutas();
         } else {
@@ -93,28 +151,23 @@ public class AppController {
     }
 
     private void handleAgregarParada() {
-        // Extraemos el texto y le quitamos los espacios en blanco al inicio o final con trim()
         String nombreParada = txtParadaNombre.getText().trim();
 
-        // Evitar paradas sin nombre
         if (nombreParada.isEmpty()) {
             updateStatus("Olvidaste ponerle nombre a la parada.");
-            return; // Cortamos la ejecución aquí mismo para que no intente guardarla
+            return;
         }
 
         try {
-            String nuevoId = sistemaInfo.generarId();
+            String nuevoId = sistemaInfo.generarId(); // Usamos el generador automático
 
-            // Si pasó la validación, procedemos a crearla y guardarla en la base de datos
             sistemaInfo.agregarParada(new Parada(nuevoId, nombreParada, clickX, clickY));
             dbGestor.saveGrafo(sistemaInfo);
             dibujarGrafoVisual();
-
-            // Refrescamos los desplegables para que la nueva parada aparezca de inmediato
-            actualizarComboBoxesParadas();
+            actualizarComboBoxesParadas(); // Refrescamos las listas
 
             updateStatus("Parada guardada automáticamente como: " + nuevoId);
-            txtParadaNombre.clear();
+            limpiarCamposParadas();
 
         } catch (Exception e) {
             updateStatus("Error crítico al guardar la parada.");
@@ -126,55 +179,95 @@ public class AppController {
             Parada origen = comboRutaOrigen.getValue();
             Parada destino = comboRutaDestino.getValue();
 
-            //Validamos que el usuario realmente haya seleccionado algo en las listas
             if (origen == null || destino == null) {
-                updateStatus("Seleccione origen y destino.");
+                updateStatus(" Seleccione origen y destino.");
                 return;
             }
 
-            //Prevenimos auto-ciclos (que una parada apunte a sí misma)
             if (origen.getId().equals(destino.getId())) {
-                updateStatus("El origen y destino no pueden ser el mismo.");
+                updateStatus(" El origen y destino no pueden ser el mismo.");
                 return;
             }
 
-            //Leemos los números ingresados
             double tiempo = Double.parseDouble(txtRutaTiempo.getText());
             double costo = Double.parseDouble(txtRutaCosto.getText());
 
-            //Seguridad contra tiempos negativos
             if (tiempo < 0) {
-                updateStatus("El tiempo de viaje no puede ser negativo.");
+                updateStatus(" El tiempo de viaje no puede ser negativo.");
                 return;
             }
 
-            //Todo en orden, procedemos a conectar las paradas
-            sistemaInfo.agregarRuta(origen.getId(), destino.getId(), tiempo, costo, 0);
-            dbGestor.saveGrafo(sistemaInfo);
-            dibujarGrafoVisual();
-            updateStatus("Conexión creada exitosamente.");
+            // Cálculo automático de distancia (Pitágoras)
+            double dx = destino.getCoorx() - origen.getCoorx();
+            double dy = destino.getCoory() - origen.getCoory();
+            double distanciaPixeles = Math.sqrt((dx * dx) + (dy * dy));
 
-            //Limpiamos los campos para la siguiente ruta
-            txtRutaTiempo.clear();
-            txtRutaCosto.clear();
+            // Convertimos píxeles a Kilómetros y redondeamos a 2 decimales
+            double distanciaKm = Math.round((distanciaPixeles / 30.0) * 100.0) / 100.0;
+
+            // Guardamos la ruta con todos los datos
+            sistemaInfo.agregarRuta(origen.getId(), destino.getId(), tiempo, costo, distanciaKm);
+            dbGestor.saveGrafo(sistemaInfo);
+
+            dibujarGrafoVisual();
+            updateStatus(" Conexión creada exitosamente.");
+
+            // Limpiamos los ComboBox y TextFields al terminar
+            limpiarCamposRutas();
 
         } catch (NumberFormatException e) {
-            //Si el usuario escribe "quince" en lugar de "15", caemos aquí
-            updateStatus("Error: Solo se aceptan valores numéricos en Tiempo y Costo.");
+            updateStatus("️ Error: Solo se aceptan valores numéricos en Tiempo y Costo.");
         } catch (Exception e) {
-            updateStatus("Error inesperado al conectar.");
+            updateStatus(" Error inesperado al conectar.");
         }
     }
 
     private void handleCalcularRuta() {
         try {
+            Parada origen = comboCalcOrigen.getValue();
+            Parada destino = comboCalcDestino.getValue();
+            CriterioPesos criterio = comboCriterio.getValue();
+
+            if (origen == null || destino == null || criterio == null) {
+                updateStatus(" Seleccione origen, destino y criterio.");
+                return;
+            }
+
             CalculadoraRutas.ResultadoCamino res = new CalculadoraRutas().calcularRutaIdeal(sistemaInfo,
-                    txtCalcOrigen.getText(), txtCalcDestino.getText(), comboCriterio.getValue());
+                    origen.getId(), destino.getId(), criterio);
+
             if (res != null) {
                 dibujarGrafoConCamino(res.paradas);
-                updateStatus("Costo total: " + res.costoTotal);
+
+                String mensaje = "";
+                switch (criterio) {
+                    case TIEMPO:
+                        mensaje = "Tiempo estimado: " + res.costoTotal + " minutos.";
+                        break;
+                    case COSTO:
+                        mensaje = "Costo del viaje: $" + res.costoTotal;
+                        break;
+                    case DISTANCIA:
+                        double distRedondeada = Math.round(res.costoTotal * 100.0) / 100.0;
+                        mensaje = "Distancia a recorrer: " + distRedondeada + " Km.";
+                        break;
+                    case TRANSBORDOS:
+                        int conexiones = res.paradas.size() - 1;
+                        mensaje = "Ruta más directa: " + conexiones + " trasbordos/tramos.";
+                        break;
+                }
+
+                updateStatus(" Ruta encontrada | " + mensaje);
+
+                // Limpiamos los ComboBox de búsqueda al terminar
+                limpiarCamposViaje();
+
+            } else {
+                updateStatus(" No hay ruta disponible o están desconectadas.");
             }
-        } catch (Exception e) { updateStatus("Error en el cálculo."); }
+        } catch (Exception e) {
+            updateStatus(" Error en el cálculo.");
+        }
     }
 
     private void dibujarGrafoVisual() {
@@ -201,24 +294,22 @@ public class AppController {
             double y = p.getCoory()*ZOOM+100;
 
             Circle c = new Circle(x, y, 12, Color.web("#1e3799"));
-            //Evento para borrar la parada con Clic Derecho
+
+            // Evento para borrar la parada con Clic Derecho
             c.setOnMouseClicked(event -> {
                 if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
-
-                    // 1. Creamos la ventana de confirmación
                     Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
                     alerta.setTitle("Confirmar Eliminación");
                     alerta.setHeaderText("¿Eliminar la parada " + p.getNombre() + "?");
-                    alerta.setContentText("Esta acción es irreversible y también borrará todas las rutas conectadas a esta parada.");
+                    alerta.setContentText("Esta acción es irreversible y borrará las rutas conectadas.");
 
-                    // 2. Mostramos la ventana y esperamos a que el usuario responda
                     java.util.Optional<ButtonType> resultado = alerta.showAndWait();
 
-                    // 3. Si el usuario presiona "OK", procedemos con la destrucción
                     if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
                         if (sistemaInfo.eliminarParada(p.getId())) {
                             dbGestor.saveGrafo(sistemaInfo);
-                            dibujarGrafoVisual(); // Redibujamos para que desaparezca
+                            dibujarGrafoVisual();
+                            actualizarComboBoxesParadas(); // Actualizamos las listas
                             updateStatus("Parada eliminada: " + p.getNombre());
                         }
                     } else {

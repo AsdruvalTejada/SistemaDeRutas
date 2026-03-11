@@ -26,8 +26,8 @@
                   </Tab>
                   <Tab text="Conexiones">
                      <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
-                        <TextField fx:id="txtRutaOrigen" promptText="ID Origen" style="-fx-padding: 8;" />
-                        <TextField fx:id="txtRutaDestino" promptText="ID Destino" style="-fx-padding: 8;" />
+                        <ComboBox fx:id="comboRutaOrigen" maxWidth="Infinity" promptText="Seleccione Origen" style="-fx-background-radius: 5;" />
+                        <ComboBox fx:id="comboRutaDestino" maxWidth="Infinity" promptText="Seleccione Destino" style="-fx-background-radius: 5;" />
                         <HBox spacing="10.0">
                            <TextField fx:id="txtRutaTiempo" promptText="Minutos" HBox.hgrow="ALWAYS" style="-fx-padding: 8;" />
                            <TextField fx:id="txtRutaCosto" promptText="Costo $" HBox.hgrow="ALWAYS" style="-fx-padding: 8;" />
@@ -38,10 +38,10 @@
                   </Tab>
                   <Tab text="Viaje">
                      <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
-                        <TextField fx:id="txtCalcOrigen" promptText="Origen" style="-fx-padding: 8;" />
-                        <TextField fx:id="txtCalcDestino" promptText="Destino" style="-fx-padding: 8;" />
-                        <ComboBox fx:id="comboCriterio" maxWidth="Infinity" promptText="Criterio" />
-                        <Button fx:id="btnCalcular" maxWidth="Infinity" style="-fx-background-color: #079992; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Calcular Mejor Ruta" />
+                        <ComboBox fx:id="comboCalcOrigen" maxWidth="Infinity" promptText="Punto de Partida" style="-fx-background-radius: 5;" />
+                        <ComboBox fx:id="comboCalcDestino" maxWidth="Infinity" promptText="Punto de Llegada" style="-fx-background-radius: 5;" />
+                        <ComboBox fx:id="comboCriterio" maxWidth="Infinity" promptText="Criterio" style="-fx-background-radius: 5;" />
+                        <Button fx:id="btnCalcular" maxWidth="Infinity" style="-fx-background-color: #4a69bd; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Calcular Mejor Ruta" />
                      </VBox>
                   </Tab>
                </tabs>
