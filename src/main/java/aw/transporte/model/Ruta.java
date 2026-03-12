@@ -8,7 +8,6 @@ public class Ruta {
     private String idDestino;
     private Map<CriterioPesos, Double> pesos;
 
-    // Constructor con 5 parámetros
     public Ruta(String idOrigen, String idDestino, double tiempo, double distancia, double costo) {
         this.idOrigen = idOrigen;
         this.idDestino = idDestino;
@@ -19,7 +18,6 @@ public class Ruta {
         this.pesos.put(CriterioPesos.TRANSBORDOS, 1.0);
     }
 
-    // Getters necesarios para el Grafo y el AppController
     public String getIdOrigen() { return idOrigen; }
     public String getIdDestino() { return idDestino; }
 

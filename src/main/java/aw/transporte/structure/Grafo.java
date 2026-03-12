@@ -60,20 +60,19 @@ public class Grafo {
         }
     }
 
-    public boolean modificarParada(String id, String nuevoNombre, double nuevaX, double nuevaY) {
-        if (paradas.containsKey(id)) {
-            Parada p = paradas.get(id);
-            p.setNombre(nuevoNombre);
-            p.setCoorx(nuevaX);
-            p.setCoory(nuevaY);
-            return true;
-        }
-        return false;
-    }
+//    public boolean modificarParada(String id, String nuevoNombre, double nuevaX, double nuevaY) {
+//        if (paradas.containsKey(id)) {
+//            Parada p = paradas.get(id);
+//            p.setNombre(nuevoNombre);
+//            p.setCoorx(nuevaX);
+//            p.setCoory(nuevaY);
+//            return true;
+//        }
+//        return false;
+//    }
 
     public boolean eliminarParada(String id) {
         if (!paradas.containsKey(id)) return false;
-
         // 1. Eliminar la parada y su lista de rutas salientes
         paradas.remove(id);
         adyacencia.remove(id);

@@ -26,10 +26,7 @@ public class AppController {
     @FXML private TextField txtParadaNombre, txtRutaTiempo, txtRutaCosto;
     @FXML private Button btnAgregarParada, btnAgregarRuta, btnEliminarRuta, btnCalcular;
     @FXML private ComboBox<CriterioPesos> comboCriterio;
-
-    // LAS NUEVAS VARIABLES DE COMBOBOX
     @FXML private ComboBox<Parada> comboRutaOrigen, comboRutaDestino, comboCalcOrigen, comboCalcDestino;
-
     @FXML private Label lblEstado;
     @FXML private Pane graphPane;
     @FXML private AnchorPane anchorMapa;
@@ -126,8 +123,8 @@ public class AppController {
     }
 
     private void limpiarCamposViaje() {
-        comboCalcOrigen.setValue(null);
-        comboCalcDestino.setValue(null);
+//        comboCalcOrigen.setValue(null);
+//        comboCalcDestino.setValue(null);
         comboCriterio.setValue(null);
     }
 

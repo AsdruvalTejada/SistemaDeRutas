@@ -8,7 +8,6 @@ import java.util.*;
 
 public class CalculadoraRutas {
 
-    
     public static class ResultadoCamino {
         public List<String> paradas;
         public double costoTotal;
@@ -21,7 +20,6 @@ public class CalculadoraRutas {
 
     private record NodoDistancia(String idParada, double distanciaAcumulada) {}
 
-    // Este es nuestro "cerebro" o puente principal.
     // La interfaz gráfica nos manda los datos del viaje y aquí decidimos qué algoritmo es el ideal para el trabajo.
     public ResultadoCamino calcularRutaIdeal(Grafo grafo, String origen, String destino, CriterioPesos criterio) {
         //Dependiendo de lo que pida el usuario, usamos el algoritmo matemáticamente correcto
