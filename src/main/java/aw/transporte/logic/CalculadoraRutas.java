@@ -32,12 +32,12 @@ public class CalculadoraRutas {
 
     // 1. DIJKSTRA (Para Tiempo y Distancia - No para descuentos o pesos negativos)
     private ResultadoCamino dijkstra(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio) {
-        Map<String, Double> distancias = new HashMap<>();
-        Map<String, String> predecesores = new HashMap<>();
+        Map<String, Double> valores = new HashMap<>();
+        Map<String, String> pasados = new HashMap<>();
         PriorityQueue<NodoDistancia> colaPrioridad = new PriorityQueue<>(Comparator.comparingDouble(NodoDistancia::distanciaAcumulada));
 
-        for (String p : grafo.getParadas().keySet()) distancias.put(p, Double.MAX_VALUE);
-        distancias.put(idOrigen, 0.0);
+        for (String p : grafo.getParadas().keySet()) valores.put(p, Double.MAX_VALUE);
+        valores.put(idOrigen, 0.0);
         colaPrioridad.add(new NodoDistancia(idOrigen, 0.0));
 
         while (!colaPrioridad.isEmpty()) {
@@ -45,30 +45,30 @@ public class CalculadoraRutas {
             String u = actual.idParada();
 
             if (u.equals(idDestino)) break;
-            if (actual.distanciaAcumulada() > distancias.get(u)) continue;
+            if (actual.distanciaAcumulada() > valores.get(u)) continue;
 
             for (Ruta ruta : grafo.getAdyacencia().getOrDefault(u, new ArrayList<>())) {
                 String v = ruta.getIdDestino();
                 double pesoArista = ruta.getValorPeso(criterio);
-                double nuevaDistancia = distancias.get(u) + pesoArista;
+                double nuevaDistancia = valores.get(u) + pesoArista;
 
-                if (nuevaDistancia < distancias.getOrDefault(v, Double.MAX_VALUE)) {
-                    distancias.put(v, nuevaDistancia);
-                    predecesores.put(v, u);
+                if (nuevaDistancia < valores.getOrDefault(v, Double.MAX_VALUE)) {
+                    valores.put(v, nuevaDistancia);
+                    pasados.put(v, u);
                     colaPrioridad.add(new NodoDistancia(v, nuevaDistancia));
                 }
             }
         }
-        return reconstruirCamino(predecesores, distancias, idOrigen, idDestino);
+        return reconstruirCamino(pasados, valores, idOrigen, idDestino);
     }
 
     // 2. BELLMAN-FORD (Para Costo - Si Soporta descuentos o pesos negativos)
     private ResultadoCamino bellmanFord(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio) {
-        Map<String, Double> distancias = new HashMap<>();
-        Map<String, String> predecesores = new HashMap<>();
+        Map<String, Double> valores = new HashMap<>();
+        Map<String, String> pasados = new HashMap<>();
 
-        for (String p : grafo.getParadas().keySet()) distancias.put(p, Double.MAX_VALUE);
-        distancias.put(idOrigen, 0.0);
+        for (String p : grafo.getParadas().keySet()) valores.put(p, Double.MAX_VALUE);
+        valores.put(idOrigen, 0.0);
 
         int V = grafo.getParadas().size();
 
@@ -79,37 +79,37 @@ public class CalculadoraRutas {
                     String v = ruta.getIdDestino();
                     double pesoArista = ruta.getValorPeso(criterio);
 
-                    if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista < distancias.get(v)) {
-                        distancias.put(v, distancias.get(u) + pesoArista);
-                        predecesores.put(v, u);
+                    if (valores.get(u) != Double.MAX_VALUE && valores.get(u) + pesoArista < valores.get(v)) {
+                        valores.put(v, valores.get(u) + pesoArista);
+                        pasados.put(v, u);
                     }
                 }
             }
         }
 
-        //2. Verificación de Ciclos Negativos para evitar bucles infinitos
+        // Verificación de Ciclos Negativos para evitar bucles infinitos
         for (String u : grafo.getAdyacencia().keySet()) {
             for (Ruta ruta : grafo.getAdyacencia().get(u)) {
                 String v = ruta.getIdDestino();
                 double pesoArista = ruta.getValorPeso(criterio);
 
                 //Si después de V-1 iteraciones sigo encontrando rutas más baratas, hay un ciclo infinito
-                if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista < distancias.get(v)) {
-                    System.out.println("¡Ciclo negativo detectado entre " + u + " y " + v);
+                if (valores.get(u) != Double.MAX_VALUE && valores.get(u) + pesoArista < valores.get(v)) {
+                    System.out.println("Ciclo negativo entre " + u + " y " + v);
                     return null; //Retornamos null para que la interfaz sepa que falló y no haga el while infinito
                 }
             }
         }
 
         // 3. Si todo está seguro, reconstruimos el camino
-        return reconstruirCamino(predecesores, distancias, idOrigen, idDestino);
+        return reconstruirCamino(pasados, valores, idOrigen, idDestino);
     }
 
-    // 3. BFS (Para Transbordos - Busca la menor cantidad de saltos)
+    // 3. BFS (Para Transbordos)
     private ResultadoCamino bfsTransbordos(Grafo grafo, String idOrigen, String idDestino) {
         Queue<String> cola = new LinkedList<>();
         Set<String> visitados = new HashSet<>();
-        Map<String, String> predecesores = new HashMap<>();
+        Map<String, String> pasados = new HashMap<>();
 
         cola.add(idOrigen);
         visitados.add(idOrigen);
@@ -122,14 +122,14 @@ public class CalculadoraRutas {
                 String v = ruta.getIdDestino();
                 if (!visitados.contains(v)) {
                     visitados.add(v);
-                    predecesores.put(v, u);
+                    pasados.put(v, u);
                     cola.add(v);
                 }
             }
         }
 
         // Para BFS, el "costo" es la cantidad de saltos (paradas - 1)
-        ResultadoCamino res = reconstruirCamino(predecesores, new HashMap<>(), idOrigen, idDestino);
+        ResultadoCamino res = reconstruirCamino(pasados, new HashMap<>(), idOrigen, idDestino);
         if (res != null) {
             res.costoTotal = res.paradas.size() - 1; // 3 paradas = 2 transbordos
         }

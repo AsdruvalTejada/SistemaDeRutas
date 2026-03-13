@@ -26,7 +26,9 @@ public class AppController {
     @FXML private TextField txtParadaNombre, txtRutaTiempo, txtRutaCosto;
     @FXML private Button btnAgregarParada, btnAgregarRuta, btnEliminarRuta, btnCalcular;
     @FXML private ComboBox<CriterioPesos> comboCriterio;
+
     @FXML private ComboBox<Parada> comboRutaOrigen, comboRutaDestino, comboCalcOrigen, comboCalcDestino;
+
     @FXML private Label lblEstado;
     @FXML private Pane graphPane;
     @FXML private AnchorPane anchorMapa;
@@ -71,7 +73,6 @@ public class AppController {
         aplicarFijadorDeTextoCriterio(comboCriterio, "Criterio de Viaje");
     }
 
-    // EL MOTOR QUE ACTUALIZA LAS LISTAS
     private void actualizarComboBoxesParadas() {
         List<Parada> listaParadas = new ArrayList<>(sistemaInfo.getParadas().values());
         listaParadas.sort(Comparator.comparing(Parada::getNombre));

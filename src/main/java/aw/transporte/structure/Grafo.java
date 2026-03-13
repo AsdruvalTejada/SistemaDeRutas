@@ -14,9 +14,10 @@ public class Grafo {
         this.adyacencia = new HashMap<>();
     }
 
-    // Generador automático de IDs (Ej: Si existe P1, P2 y P5, el siguiente será P6)
     public String generarId() {
         int maxId = 0;
+
+//        paradas.values().stream().toList().getLast();
 
         for (String id : paradas.keySet()) {
             // Verificamos que el ID empiece con "P"
@@ -28,12 +29,10 @@ public class Grafo {
                         maxId = numero;
                     }
                 } catch (NumberFormatException e) {
-                    //Si por alguna razón hay un ID raro, lo ignoramos
+                    //Si hay un ID raro, lo ignoramos
                 }
             }
         }
-
-        // Retornamos la letra "P" más el siguiente número disponible
         return "P" + (maxId + 1);
     }
 
@@ -57,19 +56,9 @@ public class Grafo {
         if (!paradas.containsKey(p.getId())) {
             paradas.put(p.getId(), p);
             adyacencia.put(p.getId(), new ArrayList<>());
+//            paradas.putIfAbsent()
         }
     }
-
-//    public boolean modificarParada(String id, String nuevoNombre, double nuevaX, double nuevaY) {
-//        if (paradas.containsKey(id)) {
-//            Parada p = paradas.get(id);
-//            p.setNombre(nuevoNombre);
-//            p.setCoorx(nuevaX);
-//            p.setCoory(nuevaY);
-//            return true;
-//        }
-//        return false;
-//    }
 
     public boolean eliminarParada(String id) {
         if (!paradas.containsKey(id)) return false;
@@ -83,8 +72,6 @@ public class Grafo {
         }
         return true;
     }
-
-
 
     public boolean eliminarRuta(String idOrigen, String idDestino) {
         if (adyacencia.containsKey(idOrigen)) {
