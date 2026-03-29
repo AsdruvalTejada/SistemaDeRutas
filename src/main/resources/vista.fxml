@@ -5,63 +5,99 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<SplitPane dividerPositions="0.35" prefHeight="720.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
-   <items>
-      <VBox minWidth="400.0" spacing="20.0" style="-fx-background-color: #f1f2f6; -fx-border-color: #d1d8e0; -fx-border-width: 0 1 0 0;">
-         <padding><Insets bottom="25.0" left="25.0" right="25.0" top="25.0" /></padding>
+<AnchorPane prefHeight="720.0" prefWidth="1200.0" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+
+      <AnchorPane fx:id="anchorMapa" style="-fx-background-color: #2f3542;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <Label text="Sistema de Rutas" textFill="#1e3799">
-               <font><Font name="System Bold" size="28.0" /></font>
+            <Pane fx:id="graphPane" style="-fx-cursor: crosshair;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+         </children>
+      </AnchorPane>
+
+      <VBox fx:id="panelFlotante" prefWidth="380.0" spacing="10.0" styleClass="panel-flotante" AnchorPane.bottomAnchor="25.0" AnchorPane.rightAnchor="25.0" AnchorPane.topAnchor="25.0">
+         <children>
+
+            <HBox fx:id="barraArrastre" alignment="CENTER" prefHeight="20.0" styleClass="barra-arrastre">
+               <children>
+                  <Region styleClass="tirador-ventana" />
+               </children>
+            </HBox>
+
+            <Label styleClass="titulo-app" text="Sistema de Rutas">
+               <font>
+                  <Font name="System Bold" size="28.0" />
+               </font>
             </Label>
 
-            <TabPane tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;">
+            <TabPane style="-fx-background-color: transparent;" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
                <tabs>
                   <Tab text="Paradas">
-                     <VBox spacing="15.0" style="-fx-padding: 20 0 0 0;">
-                        <Label text="Guía rápida:" textFill="#57606f" style="-fx-font-weight: bold;" />
-                        <Label text="1. Haz clic en el mapa para situar un punto." textFill="#747d8c" wrapText="true" />
-                        <TextField fx:id="txtParadaNombre" promptText="Nombre del Lugar" style="-fx-background-radius: 5; -fx-padding: 8;" />
-                        <Button fx:id="btnAgregarParada" maxWidth="Infinity" style="-fx-background-color: #4a69bd; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Guardar en Mapa" />
-                     </VBox>
+                     <content>
+                        <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
+                           <children>
+                              <Label style="-fx-text-fill: #57606f; -fx-font-weight: bold;" text="Agregar Nueva Parada:" />
+                              <Label style="-fx-text-fill: #747d8c;" text="Haz clic en el mapa para situar un punto y escribe su nombre abajo." wrapText="true" />
+                              <TextField fx:id="txtParadaNombre" promptText="Nombre del Lugar" />
+                              <Button fx:id="btnAgregarParada" maxWidth="Infinity" text="Guardar en Mapa" />
+
+                              <Separator style="-fx-padding: 10 0 10 0;" />
+
+                              <Label style="-fx-text-fill: #57606f; -fx-font-weight: bold;" text="Modificar Parada Existente:" />
+                              <Label style="-fx-text-fill: #7f8fa6; -fx-font-style: italic; -fx-font-size: 12px;" text="Tip: Para cambiar la ubicación, arrastra el círculo directamente en el mapa." wrapText="true" />
+                              <ComboBox fx:id="comboParadaModificar" maxWidth="Infinity" promptText="Seleccione Parada" />
+                              <TextField fx:id="txtNuevoNombreParada" promptText="Nuevo Nombre" />
+                              <Button fx:id="btnModificarParada" maxWidth="Infinity" text="Actualizar Nombre" />
+                           </children>
+                        </VBox>
+                     </content>
                   </Tab>
+
                   <Tab text="Conexiones">
-                     <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
-                        <ComboBox fx:id="comboRutaOrigen" maxWidth="Infinity" promptText="Seleccione Origen" style="-fx-background-radius: 5;" />
-                        <ComboBox fx:id="comboRutaDestino" maxWidth="Infinity" promptText="Seleccione Destino" style="-fx-background-radius: 5;" />
-                        <HBox spacing="10.0">
-                           <TextField fx:id="txtRutaTiempo" promptText="Minutos" HBox.hgrow="ALWAYS" style="-fx-padding: 8;" />
-                           <TextField fx:id="txtRutaCosto" promptText="Costo $" HBox.hgrow="ALWAYS" style="-fx-padding: 8;" />
-                        </HBox>
-                        <Button fx:id="btnAgregarRuta" maxWidth="Infinity" style="-fx-background-color: #4a69bd; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Conectar Paradas" />
-                        <Button fx:id="btnEliminarRuta" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #eb4d4b; -fx-border-color: #eb4d4b; -fx-border-radius: 5; -fx-cursor: hand;" text="Eliminar Conexión" />
-                     </VBox>
+                     <content>
+                        <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
+                           <children>
+                              <ComboBox fx:id="comboRutaOrigen" maxWidth="Infinity" promptText="Seleccione Origen" />
+                              <ComboBox fx:id="comboRutaDestino" maxWidth="Infinity" promptText="Seleccione Destino" />
+                              <HBox spacing="10.0">
+                                 <children>
+                                    <TextField fx:id="txtRutaTiempo" promptText="Minutos" HBox.hgrow="ALWAYS" />
+                                    <TextField fx:id="txtRutaCosto" promptText="Costo $" HBox.hgrow="ALWAYS" />
+                                 </children>
+                              </HBox>
+                              <Button fx:id="btnAgregarRuta" maxWidth="Infinity" text="Conectar Paradas" />
+                              <Button fx:id="btnModificarRuta" maxWidth="Infinity" text="Actualizar Costo/Tiempo" />
+                              <Button fx:id="btnEliminarRuta" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #eb4d4b; -fx-border-color: #eb4d4b; -fx-border-radius: 5; -fx-cursor: hand;" text="Eliminar Conexión" />
+                           </children>
+                        </VBox>
+                     </content>
                   </Tab>
+
                   <Tab text="Viaje">
-                     <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
-                        <ComboBox fx:id="comboCalcOrigen" maxWidth="Infinity" promptText="Punto de Partida" style="-fx-background-radius: 5;" />
-                        <ComboBox fx:id="comboCalcDestino" maxWidth="Infinity" promptText="Punto de Llegada" style="-fx-background-radius: 5;" />
-                        <ComboBox fx:id="comboCriterio" maxWidth="Infinity" promptText="Criterio" style="-fx-background-radius: 5;" />
-                        <Button fx:id="btnCalcular" maxWidth="Infinity" style="-fx-background-color: #4a69bd; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Calcular Mejor Ruta" />
-                     </VBox>
+                     <content>
+                        <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
+                           <children>
+                              <ComboBox fx:id="comboCalcOrigen" maxWidth="Infinity" promptText="Punto de Partida" />
+                              <ComboBox fx:id="comboCalcDestino" maxWidth="Infinity" promptText="Punto de Llegada" />
+                              <ComboBox fx:id="comboCriterio" maxWidth="Infinity" promptText="Criterio" />
+                              <Button fx:id="btnCalcular" maxWidth="Infinity" text="Calcular Mejor Ruta" />
+                           </children>
+                        </VBox>
+                     </content>
                   </Tab>
                </tabs>
             </TabPane>
 
             <VBox spacing="5.0">
-               <Label text="Estado:" textFill="#7f8c8d" />
-               <Label fx:id="lblEstado" text="Listo" style="-fx-background-color: #dfe4ea; -fx-padding: 10; -fx-background-radius: 5; -fx-font-weight: bold;" maxWidth="Infinity" wrapText="true" />
+               <children>
+                  <Label text="Estado:" textFill="#7f8c8d" />
+                  <Label fx:id="lblEstado" maxWidth="Infinity" text="Ubicación marcada." wrapText="true" />
+               </children>
             </VBox>
          </children>
+         <padding>
+            <Insets bottom="20.0" left="25.0" right="25.0" top="5.0" />
+         </padding>
       </VBox>
 
-      <AnchorPane fx:id="anchorMapa" style="-fx-background-color: #2f3542;">
-         <children>
-            <Pane fx:id="graphPane" style="-fx-cursor: crosshair;"
-                  AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-                  AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
-            <VBox alignment="TOP_RIGHT" pickOnBounds="false" style="-fx-padding: 20;" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-            </VBox>
-         </children>
-      </AnchorPane>
-   </items>
-</SplitPane>
+   </children>
+</AnchorPane>

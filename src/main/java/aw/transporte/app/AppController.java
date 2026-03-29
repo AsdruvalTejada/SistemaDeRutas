@@ -12,6 +12,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
@@ -30,13 +31,19 @@ public class AppController {
     @FXML private Label lblEstado;
     @FXML private Pane graphPane;
     @FXML private AnchorPane anchorMapa;
+    @FXML private ComboBox<Parada> comboParadaModificar;
+    @FXML private TextField txtNuevoNombreParada;
+    @FXML private Button btnModificarParada;
+    @FXML private Button btnModificarRuta;
+    @FXML private VBox panelFlotante;
+    private double xOffset = 0;
+    private double yOffset = 0;
 
     private Grafo sistemaInfo;
     private JsonGestor dbGestor;
     private static final double ZOOM = 7.0;
     private double clickX, clickY;
 
-    @FXML
     public void initialize() {
         dbGestor = new JsonGestor();
         sistemaInfo = dbGestor.fetchGrafoData();
@@ -57,10 +64,36 @@ public class AppController {
             updateStatus("Ubicación marcada.");
         });
 
+        // Arrastrar el panel
+        if (panelFlotante != null) {
+
+            // Cambiamos el cursor a una mano abierta para indicar que se puede mover
+            panelFlotante.setStyle("-fx-cursor: open-hand;");
+            panelFlotante.setOnMousePressed(event -> {
+                panelFlotante.setStyle("-fx-cursor: closed-hand;");
+                // Calculamos la diferencia entre el ratón y la posición actual de traslación
+                xOffset = event.getSceneX() - panelFlotante.getTranslateX();
+                yOffset = event.getSceneY() - panelFlotante.getTranslateY();
+            });
+
+            panelFlotante.setOnMouseDragged(event -> {
+                // Movemos el panel visualmente sumando la traslación
+                panelFlotante.setTranslateX(event.getSceneX() - xOffset);
+                panelFlotante.setTranslateY(event.getSceneY() - yOffset);
+            });
+
+            panelFlotante.setOnMouseReleased(event -> {
+                panelFlotante.setStyle("-fx-cursor: open-hand;");
+            });
+        } else {
+            System.out.println("No se puede mover");
+        }
         btnAgregarParada.setOnAction(e -> handleAgregarParada());
         btnAgregarRuta.setOnAction(e -> handleAgregarRuta());
         btnEliminarRuta.setOnAction(e -> handleEliminarRuta());
         btnCalcular.setOnAction(e -> handleCalcularRuta());
+        btnModificarParada.setOnAction(e -> handleModificarParada());
+        btnModificarRuta.setOnAction(e -> handleModificarRuta());
 
         dibujarGrafoVisual();
         actualizarComboBoxesParadas(); // Cargamos las listas al iniciar
@@ -80,6 +113,7 @@ public class AppController {
         if (comboRutaDestino != null) comboRutaDestino.setItems(opciones);
         if (comboCalcOrigen != null) comboCalcOrigen.setItems(opciones);
         if (comboCalcDestino != null) comboCalcDestino.setItems(opciones);
+        comboParadaModificar.getItems().setAll(sistemaInfo.getParadas().values());
     }
 
     private void limpiarCamposParadas() {
@@ -122,8 +156,6 @@ public class AppController {
     }
 
     private void limpiarCamposViaje() {
-//        comboCalcOrigen.setValue(null);
-//        comboCalcDestino.setValue(null);
         comboCriterio.setValue(null);
     }
 
@@ -151,17 +183,41 @@ public class AppController {
         }
     }
 
+    private void handleModificarParada() {
+        Parada paradaSeleccionada = comboParadaModificar.getValue();
+        String nuevoNombre = txtNuevoNombreParada.getText().trim();
+
+        if (paradaSeleccionada == null) {
+            updateStatus(" Seleccione una parada de la lista para modificar.");
+            return;
+        }
+        if (nuevoNombre.isEmpty()) {
+            updateStatus(" El nuevo nombre no puede estar vacío.");
+            return;
+        }
+
+        paradaSeleccionada.setNombre(nuevoNombre);
+
+        dbGestor.saveGrafo(sistemaInfo);
+        dibujarGrafoVisual();
+        actualizarComboBoxesParadas();
+
+        txtNuevoNombreParada.clear();
+        comboParadaModificar.getSelectionModel().clearSelection();
+        updateStatus(" Parada modificada exitosamente a: " + nuevoNombre);
+    }
+
     private void handleAgregarRuta() {
         try {
             Parada origen = comboRutaOrigen.getValue();
             Parada destino = comboRutaDestino.getValue();
 
             if (origen == null || destino == null) {
-                updateStatus("⚠️ Seleccione origen y destino.");
+                updateStatus(" Seleccione origen y destino.");
                 return;
             }
             if (origen.getId().equals(destino.getId())) {
-                updateStatus("⚠️ El origen y destino no pueden ser el mismo.");
+                updateStatus(" El origen y destino no pueden ser el mismo.");
                 return;
             }
 
@@ -169,7 +225,7 @@ public class AppController {
             double costo = Double.parseDouble(txtRutaCosto.getText());
 
             if (tiempo < 0 || costo < 0) {
-                updateStatus("⚠️ Los valores de tiempo y costo no pueden ser negativos.");
+                updateStatus(" Los valores de tiempo y costo no pueden ser negativos.");
                 return;
             }
 
@@ -177,26 +233,24 @@ public class AppController {
             double dy = destino.getCoory() - origen.getCoory();
             double distanciaKm = Math.round((Math.sqrt((dx * dx) + (dy * dy)) / 30.0) * 100.0) / 100.0;
 
-            // Invento un nombre de línea genérico por ahora (Ej: "Línea P1-P2"). Luego Wilmary, puedes agregar un TextField para esto porfa.
             String nombreLinea = "Línea " + origen.getId() + "-" + destino.getId();
 
-            // Pasamos los objetos como tal. El boolean nos dice si fue exitoso o duplicado.
             boolean conectada = sistemaInfo.agregarRuta(origen, destino, nombreLinea, tiempo, costo, distanciaKm);
 
             if (conectada) {
                 dbGestor.saveGrafo(sistemaInfo);
                 dibujarGrafoVisual();
-                updateStatus("✅ Conexión creada exitosamente.");
+                updateStatus(" Conexión creada exitosamente.");
                 txtRutaTiempo.clear();
                 txtRutaCosto.clear();
             } else {
-                updateStatus("⚠️ La ruta ya existe hacia ese destino.");
+                updateStatus(" La ruta ya existe hacia ese destino.");
             }
 
         } catch (NumberFormatException e) {
-            updateStatus("⚠️ Error: Solo ingrese números en Tiempo y Costo.");
+            updateStatus(" Error: Solo ingrese números en Tiempo y Costo.");
         } catch (Exception e) {
-            updateStatus("⚠️ Error inesperado al conectar.");
+            updateStatus(" Error inesperado al conectar.");
         }
     }
 
@@ -205,17 +259,53 @@ public class AppController {
         Parada destino = comboRutaDestino.getValue();
 
         if (origen == null || destino == null) {
-            updateStatus("⚠️ Seleccione origen y destino para eliminar.");
+            updateStatus(" Seleccione origen y destino para eliminar.");
             return;
         }
 
-        // Pasamos OBJETOS
         if (sistemaInfo.eliminarRuta(origen, destino)) {
             dbGestor.saveGrafo(sistemaInfo);
             dibujarGrafoVisual();
-            updateStatus("🗑️ Línea eliminada.");
+            updateStatus(" Línea eliminada.");
         } else {
-            updateStatus("❌ No se encontró la ruta o ya fue eliminada.");
+            updateStatus(" No se encontró la ruta o ya fue eliminada.");
+        }
+    }
+
+    private void handleModificarRuta() {
+        Parada origen = comboRutaOrigen.getValue();
+        Parada destino = comboRutaDestino.getValue();
+
+        if (origen == null || destino == null) {
+            updateStatus(" Seleccione origen y destino para modificar.");
+            return;
+        }
+
+        try {
+            double nuevoTiempo = Double.parseDouble(txtRutaTiempo.getText());
+            double nuevoCosto = Double.parseDouble(txtRutaCosto.getText());
+
+            Set<Ruta> rutasOrigen = sistemaInfo.getAdyacencia().get(origen.getId());
+
+            if (rutasOrigen != null) {
+                for (Ruta r : rutasOrigen) {
+                    if (r.getIdDestino().equals(destino.getId())) {
+
+                        r.getPesos().put(aw.transporte.model.CriterioPesos.TIEMPO, nuevoTiempo);
+                        r.getPesos().put(aw.transporte.model.CriterioPesos.COSTO, nuevoCosto);
+
+                        dbGestor.saveGrafo(sistemaInfo);
+                        updateStatus(" Conexión actualizada exitosamente.");
+                        txtRutaTiempo.clear();
+                        txtRutaCosto.clear();
+                        return;
+                    }
+                }
+            }
+            updateStatus(" No existe una conexión entre estas paradas.");
+
+        } catch (NumberFormatException e) {
+            updateStatus(" Por favor, ingrese valores numéricos válidos.");
         }
     }
 
@@ -256,7 +346,6 @@ public class AppController {
 
                 updateStatus(" Ruta encontrada | " + mensaje);
 
-                // Limpiamos los ComboBox de búsqueda al terminar
                 limpiarCamposViaje();
 
             } else {
@@ -281,19 +370,61 @@ public class AppController {
             for (Ruta r : adyacencia.get(idOrigen)) {
                 Parada d = paradas.get(r.getIdDestino());
                 if (d != null) {
-                    crearFlecha(p, d, Color.BLACK, 2.5, 0.7);
+                    // Revisamos si el destino también tiene una ruta de vuelta hacia este origen
+                    boolean tieneVuelta = false;
+                    Set<Ruta> rutasDestino = adyacencia.get(d.getId());
+                    if (rutasDestino != null) {
+                        for (Ruta vuelta : rutasDestino) {
+                            if (vuelta.getIdDestino().equals(p.getId())) {
+                                tieneVuelta = true;
+                                break;
+                            }
+                        }
+                    }
+                    Color colorConexion = tieneVuelta ? Color.BLACK : Color.web("#bdc3c7");
+                    crearFlecha(p, d, colorConexion, 2.5, 1.0);
                 }
             }
         }
 
+        // 2. Dibujar las paradas (Nodos)
         for (Parada p : paradas.values()) {
-            double x = p.getCoorx()*ZOOM+100;
-            double y = p.getCoory()*ZOOM+100;
+            double x = p.getCoorx() * ZOOM + 100;
+            double y = p.getCoory() * ZOOM + 100;
 
-            Circle c = new Circle(x, y, 12, Color.web("#1e3799"));
+            Circle c = new Circle(x, y, 12, Color.web("#1e3a8a")); // Azul oscuro institucional
+            c.setStroke(Color.WHITE);
+            c.setStrokeWidth(2);
+            c.setEffect(new javafx.scene.effect.DropShadow(5, Color.BLACK));
+            c.setOnMouseEntered(e -> c.setCursor(javafx.scene.Cursor.HAND));
 
-            // Evento para borrar la parada con Clic Derecho
+            c.setOnMousePressed(e -> c.setCursor(javafx.scene.Cursor.CLOSED_HAND));
+
+            c.setOnMouseDragged(e -> {
+                // Movimiento visual inmediato
+                c.setCenterX(e.getX());
+                c.setCenterY(e.getY());
+            });
+
+            c.setOnMouseReleased(e -> {
+                if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                    c.setCursor(javafx.scene.Cursor.HAND);
+
+                    double nuevaX = (c.getCenterX() - 100) / ZOOM;
+                    double nuevaY = (c.getCenterY() - 100) / ZOOM;
+
+                    p.setCoorx(nuevaX);
+                    p.setCoory(nuevaY);
+
+                    dbGestor.saveGrafo(sistemaInfo);
+                    dibujarGrafoVisual(); // Redibujar para actualizar las flechas a la nueva posición
+                    updateStatus("Posición de '" + p.getNombre() + "' actualizada.");
+                }
+            });
+
             c.setOnMouseClicked(event -> {
+                event.consume();
+
                 if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
                     Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
                     alerta.setTitle("Confirmar Eliminación");
@@ -301,29 +432,37 @@ public class AppController {
                     alerta.setContentText("Esta acción es irreversible y borrará las rutas conectadas.");
 
                     java.util.Optional<ButtonType> resultado = alerta.showAndWait();
-
                     if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
                         if (sistemaInfo.eliminarParada(p.getId())) {
                             dbGestor.saveGrafo(sistemaInfo);
                             dibujarGrafoVisual();
-                            actualizarComboBoxesParadas(); // Actualizamos las listas
+                            actualizarComboBoxesParadas();
                             updateStatus("Parada eliminada: " + p.getNombre());
                         }
-                    } else {
-                        updateStatus("Eliminación cancelada.");
                     }
                 }
             });
-            c.setStroke(Color.WHITE); c.setStrokeWidth(2);
 
             Label nameLabel = new Label(p.getNombre());
-            nameLabel.setStyle("-fx-background-color: rgba(255, 255, 255, 0.8); " + "-fx-padding: 2 5 2 5; -fx-background-radius: 5; " + "-fx-text-fill: black; -fx-font-weight: bold; -fx-font-size: 11px; " + "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);");
+            nameLabel.setStyle(
+                    "-fx-background-color: rgba(255, 255, 255, 0.9); " +
+                            "-fx-padding: 3 8; " +
+                            "-fx-background-radius: 10; " +
+                            "-fx-text-fill: #1e3a8a; " +
+                            "-fx-font-weight: bold; " +
+                            "-fx-font-size: 11px; " +
+                            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 1);"
+            );
+
+            nameLabel.setMouseTransparent(true);
+
             nameLabel.setLayoutX(x - 20);
             nameLabel.setLayoutY(y + 18);
 
             Tooltip tt = new Tooltip("ID: " + p.getId());
             Tooltip.install(c, tt);
 
+            // Añadir todo al panel
             graphPane.getChildren().addAll(c, nameLabel);
         }
     }
@@ -336,8 +475,8 @@ public class AppController {
 
         Line l = new Line(x1, y1, x2, y2);
         l.setStroke(color);
-        l.setStrokeWidth(grosor);
-        l.setOpacity(opacidad);
+        l.setStrokeWidth(2.8);
+        l.setOpacity(1.0);
 
         double dx = x2 - x1;
         double dy = y2 - y1;
@@ -357,19 +496,21 @@ public class AppController {
         });
 
         punta.setFill(color);
-        punta.setOpacity(opacidad);
+        punta.setOpacity(1.0);
 
         graphPane.getChildren().addAll(l, punta);
     }
 
-
     private void dibujarGrafoConCamino(List<String> camino) {
         dibujarGrafoVisual();
+
         Map<String, Parada> paradas = sistemaInfo.getParadas();
         for (int i = 0; i < camino.size() - 1; i++) {
-            Parada p1 = paradas.get(camino.get(i)); Parada p2 = paradas.get(camino.get(i+1));
+            Parada p1 = paradas.get(camino.get(i));
+            Parada p2 = paradas.get(camino.get(i + 1));
+
             if (p1 != null && p2 != null) {
-                crearFlecha(p1, p2, Color.web("#e67e22"), 6.0, 1.0);
+                crearFlecha(p1, p2, Color.web("#27ae60"), 6.0, 1.0);
             }
         }
     }

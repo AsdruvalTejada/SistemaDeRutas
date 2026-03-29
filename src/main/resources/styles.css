@@ -1,0 +1,162 @@
+/* --- NUEVO: Estilos para el tirador profesional --- */
+
+/* 1. El tirador real: una pequeña barra gris redondeada */
+.tirador-ventana {
+    -fx-pref-width: 40px;
+    -fx-pref-height: 4px;
+    -fx-background-color: #cbd5e1; /* Un gris muy suave */
+    -fx-background-radius: 2px;
+}
+
+/* 2. La barra de arrastre completa: un HBox invisible que reacciona al ratón */
+.barra-arrastre {
+    -fx-cursor: move; /* O 'hand' para indicar agarre */
+    -fx-background-color: transparent;
+    -fx-background-radius: 12px 12px 0 0; /* Coincide con el redondeo superior del panel */
+    -fx-padding: 10 0 15 0; /* Da espacio alrededor del tirador */
+}
+
+/* Efecto visual al pasar por encima del tirador */
+.barra-arrastre:hover .tirador-ventana {
+    -fx-background-color: #94a3b8; /* Se oscurece un poco al pasar el mouse */
+}
+/* 1. Fondo General y Tipografía Limpia */
+.root {
+    -fx-font-family: 'Segoe UI', 'Open Sans', Helvetica, Arial, sans-serif;
+    -fx-background-color: #f8f9fa;
+}
+
+/* 2. Ocultar la línea divisoria fea del centro (SplitPane) */
+.split-pane *.split-pane-divider {
+    -fx-padding: 0 1 0 1;
+    -fx-background-color: #e9ecef;
+}
+
+/* 3. Pestañas (Tabs) Minimalistas estilo Web Moderno */
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 10px 20px 10px 20px;
+    -fx-cursor: hand;
+}
+/* La línea azul que aparece debajo de la pestaña activa */
+.tab-pane .tab:selected {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #4a69bd;
+    -fx-border-width: 0 0 3px 0;
+}
+.tab-pane .tab .tab-label {
+    -fx-text-fill: #7f8fa6;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: #4a69bd;
+}
+
+/* 4. Cajas de Texto y Listas Desplegables (Inputs profesionales) */
+.text-field, .combo-box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dcdde1;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 10px 12px;
+    -fx-font-size: 13px;
+    -fx-text-fill: #2f3640;
+    -fx-prompt-text-fill: #a4b0be;
+}
+/* Efecto GLOW (Brillo) cuando el usuario hace clic para escribir */
+.text-field:focused, .combo-box:focused {
+    -fx-border-color: #4a69bd;
+    -fx-border-width: 2px;
+    -fx-effect: dropshadow(three-pass-box, rgba(74, 105, 189, 0.25), 10, 0, 0, 0);
+}
+
+/* 5. Estilo de los Botones Generales */
+.button {
+    -fx-background-radius: 6px;
+    -fx-padding: 12px 15px;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-transition: all 0.3s ease;
+}
+
+/* 6. Botones Principales (Azul corporativo profundo) */
+#btnAgregarParada, #btnAgregarRuta, #btnCalcular {
+    -fx-background-color: linear-gradient(to right, #1e3a8a, #2563eb);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(37, 99, 235, 0.4), 10, 0, 0, 4);
+}
+#btnAgregarParada:hover, #btnAgregarRuta:hover, #btnCalcular:hover {
+    -fx-background-color: linear-gradient(to right, #172554, #1e3a8a);
+    -fx-translate-y: -2px;
+}
+
+/* 7. Botones de Modificación (Azul secundario más suave, eliminando los verdes) */
+#btnModificarParada, #btnModificarRuta {
+    -fx-background-color: linear-gradient(to right, #3b82f6, #60a5fa);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(59, 130, 246, 0.4), 10, 0, 0, 4);
+}
+#btnModificarParada:hover, #btnModificarRuta:hover {
+    -fx-background-color: linear-gradient(to right, #2563eb, #3b82f6);
+    -fx-translate-y: -2px;
+}
+
+/* 8. Panel de Estado (Notificación limpia) */
+#lblEstado {
+    -fx-background-color: #ffffff;
+    /* Cambiado el borde feo por el azul corporativo principal */
+    -fx-border-color: #2563eb;
+    -fx-border-width: 0 0 0 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 12px;
+    -fx-text-fill: #2f3640;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 8, 0, 0, 3);
+}
+
+/* Efecto de Ventana Flotante para el panel derecho --- */
+.panel-flotante {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 12px;
+    -fx-border-radius: 12px;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-padding: 25px;
+    /* Esta sombra (dropshadow) es la magia que lo hace "flotar" sobre el fondo gris */
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.12), 20, 0.1, 0, 8);
+}
+
+/* Botones Principales (Azul institucional profundo) */
+#btnAgregarParada, #btnAgregarRuta, #btnCalcular {
+    -fx-background-color: linear-gradient(to right, #0033A0, #00227A);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 51, 160, 0.4), 10, 0, 0, 4);
+}
+
+#btnAgregarParada:hover, #btnAgregarRuta:hover, #btnCalcular:hover {
+    -fx-background-color: linear-gradient(to right, #001F5C, #0033A0);
+    -fx-translate-y: -2px;
+}
+
+/* Botones de Modificación (Azul secundario claro y vibrante) */
+#btnModificarParada, #btnModificarConexiones, #btnModificarRuta {
+    -fx-background-color: linear-gradient(to right, #69B3E7, #4A90E2);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(105, 179, 231, 0.4), 10, 0, 0, 4);
+}
+
+#btnModificarParada:hover, #btnModificarConexiones:hover, #btnModificarRuta:hover {
+    -fx-background-color: linear-gradient(to right, #4A90E2, #69B3E7);
+    -fx-translate-y: -2px;
+}
+
+.titulo-app {
+    -fx-font-family: 'Segoe UI Semibold', 'System Bold';
+    -fx-font-size: 28px;
+    -fx-text-fill: #1e3a8a;
+    -fx-padding: 0 0 10 0;
+}

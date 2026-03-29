@@ -3,8 +3,8 @@
     "P1": {
       "id": "P1",
       "nombre": "Cementerio",
-      "coorx": 45.0,
-      "coory": 15.0
+      "coorx": 50.05714285714286,
+      "coory": 15.085714285714285
     },
     "P2": {
       "id": "P2",
@@ -15,14 +15,14 @@
     "P3": {
       "id": "P3",
       "nombre": "UCATECI",
-      "coorx": 50.0,
-      "coory": -5.0
+      "coorx": 55.65714285714286,
+      "coory": -5.142857142857143
     },
     "P4": {
       "id": "P4",
       "nombre": "Parque Central",
-      "coorx": 28.0,
-      "coory": 4.0
+      "coorx": 21.25714285714286,
+      "coory": 8.457142857142856
     },
     "P5": {
       "id": "P5",
@@ -45,8 +45,8 @@
     "P8": {
       "id": "P8",
       "nombre": "Supermercado",
-      "coorx": 5.0,
-      "coory": 10.0
+      "coorx": -1.028571428571429,
+      "coory": 15.200000000000001
     },
     "P9": {
       "id": "P9",
@@ -69,8 +69,8 @@
     "P12": {
       "id": "P12",
       "nombre": "Plaza Mayor",
-      "coorx": 58.0,
-      "coory": 22.0
+      "coorx": 58.17142857142858,
+      "coory": 22.400000000000002
     },
     "P13": {
       "id": "P13",
@@ -87,14 +87,14 @@
     "P15": {
       "id": "P15",
       "nombre": "Gimnasio",
-      "coorx": 20.0,
-      "coory": 35.0
+      "coorx": 18.285714285714285,
+      "coory": 54.971428571428575
     },
     "P16": {
       "id": "P16",
       "nombre": "Parque Norte",
-      "coorx": 50.0,
-      "coory": 38.0
+      "coorx": 51.542857142857144,
+      "coory": 45.48571428571428
     },
     "P17": {
       "id": "P17",
@@ -112,13 +112,19 @@
       "id": "P19",
       "nombre": "Cafeteria",
       "coorx": 40.0,
-      "coory": 8.0
+      "coory": 3.4285714285714284
     },
     "P20": {
       "id": "P20",
       "nombre": "Mercado",
-      "coorx": 0.0,
-      "coory": 20.0
+      "coorx": -4.228571428571428,
+      "coory": 36.114285714285714
+    },
+    "P21": {
+      "id": "P21",
+      "nombre": "Casa de Freddy",
+      "coorx": 46.628571428571426,
+      "coory": 63.08571428571429
     }
   },
   "adyacencia": {
@@ -760,6 +766,17 @@
           "DISTANCIA": 13.0,
           "TRANSBORDOS": 1.0
         }
+      },
+      {
+        "idOrigen": "P15",
+        "idDestino": "P21",
+        "nombreLinea": "L¡nea P15-P21",
+        "pesos": {
+          "COSTO": 55.0,
+          "DISTANCIA": 0.85,
+          "TIEMPO": 8.0,
+          "TRANSBORDOS": 1.0
+        }
       }
     ],
     "P16": [
@@ -800,6 +817,17 @@
           "TIEMPO": 9.0,
           "COSTO": 52.0,
           "DISTANCIA": 8.0,
+          "TRANSBORDOS": 1.0
+        }
+      },
+      {
+        "idOrigen": "P16",
+        "idDestino": "P21",
+        "nombreLinea": "L¡nea P16-P21",
+        "pesos": {
+          "COSTO": 25.0,
+          "DISTANCIA": 0.57,
+          "TIEMPO": 5.0,
           "TRANSBORDOS": 1.0
         }
       }
@@ -948,6 +976,30 @@
           "TIEMPO": 30.0,
           "COSTO": 7.0,
           "DISTANCIA": 13.0,
+          "TRANSBORDOS": 1.0
+        }
+      }
+    ],
+    "P21": [
+      {
+        "idOrigen": "P21",
+        "idDestino": "P15",
+        "nombreLinea": "L¡nea P21-P15",
+        "pesos": {
+          "COSTO": 25.0,
+          "DISTANCIA": 0.85,
+          "TIEMPO": 8.0,
+          "TRANSBORDOS": 1.0
+        }
+      },
+      {
+        "idOrigen": "P21",
+        "idDestino": "P16",
+        "nombreLinea": "L¡nea P21-P16",
+        "pesos": {
+          "COSTO": 25.0,
+          "DISTANCIA": 0.57,
+          "TIEMPO": 5.0,
           "TRANSBORDOS": 1.0
         }
       }
