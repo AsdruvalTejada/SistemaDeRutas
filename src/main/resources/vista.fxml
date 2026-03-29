@@ -60,7 +60,6 @@
                   AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
                   AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
             <VBox alignment="TOP_RIGHT" pickOnBounds="false" style="-fx-padding: 20;" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-               <Label text="MAPA INTERACTIVO" textFill="#2f3542" style="-fx-font-size: 35; -fx-font-weight: bold; -fx-opacity: 0.3;" />
             </VBox>
          </children>
       </AnchorPane>
