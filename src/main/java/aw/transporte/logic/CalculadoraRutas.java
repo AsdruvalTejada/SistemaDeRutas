@@ -49,7 +49,7 @@ public class CalculadoraRutas {
             if (u.equals(idDestino)) break;
             if (actual.distanciaAcumulada() > distancias.get(u)) continue;
 
-            for (Ruta ruta : grafo.getAdyacencia().getOrDefault(u, new ArrayList<>())) {
+            for (Ruta ruta : grafo.getAdyacencia().getOrDefault(u, new HashSet<>())) {
                 String v = ruta.getIdDestino();
                 double pesoArista = ruta.getValorPeso(criterio);
                 double nuevaDistancia = distancias.get(u) + pesoArista;
@@ -97,7 +97,6 @@ public class CalculadoraRutas {
 
                 //Si después de V-1 iteraciones sigo encontrando rutas más baratas, hay un ciclo infinito
                 if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista < distancias.get(v)) {
-                    System.out.println("¡Ciclo negativo detectado entre " + u + " y " + v);
                     return null; //Retornamos null para que la interfaz sepa que falló y no haga el while infinito
                 }
             }
@@ -120,7 +119,7 @@ public class CalculadoraRutas {
             String u = cola.poll();
             if (u.equals(idDestino)) break;
 
-            for (Ruta ruta : grafo.getAdyacencia().getOrDefault(u, new ArrayList<>())) {
+            for (Ruta ruta : grafo.getAdyacencia().getOrDefault(u, new HashSet<>())) {
                 String v = ruta.getIdDestino();
                 if (!visitados.contains(v)) {
                     visitados.add(v);

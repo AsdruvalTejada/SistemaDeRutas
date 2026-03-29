@@ -16,10 +16,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Polygon;
-import java.util.Map;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Comparator;
+
+import java.util.*;
 
 public class AppController {
 
@@ -131,25 +129,6 @@ public class AppController {
         comboCriterio.setValue(null);
     }
 
-    private void handleEliminarRuta() {
-        Parada origen = comboRutaOrigen.getValue();
-        Parada destino = comboRutaDestino.getValue();
-
-        if (origen == null || destino == null) {
-            updateStatus(" Seleccione origen y destino para eliminar.");
-            return;
-        }
-
-        if (sistemaInfo.eliminarRuta(origen.getId(), destino.getId())) {
-            dbGestor.saveGrafo(sistemaInfo);
-            dibujarGrafoVisual();
-            updateStatus("Línea eliminada.");
-            limpiarCamposRutas();
-        } else {
-            updateStatus("No se encontró la ruta en ese sentido.");
-        }
-    }
-
     private void handleAgregarParada() {
         String nombreParada = txtParadaNombre.getText().trim();
 
@@ -180,45 +159,65 @@ public class AppController {
             Parada destino = comboRutaDestino.getValue();
 
             if (origen == null || destino == null) {
-                updateStatus(" Seleccione origen y destino.");
+                updateStatus("⚠️ Seleccione origen y destino.");
                 return;
             }
-
             if (origen.getId().equals(destino.getId())) {
-                updateStatus(" El origen y destino no pueden ser el mismo.");
+                updateStatus("⚠️ El origen y destino no pueden ser el mismo.");
                 return;
             }
 
             double tiempo = Double.parseDouble(txtRutaTiempo.getText());
             double costo = Double.parseDouble(txtRutaCosto.getText());
 
-            if (tiempo < 0) {
-                updateStatus(" El tiempo de viaje no puede ser negativo.");
+            if (tiempo < 0 || costo < 0) {
+                updateStatus("⚠️ Los valores de tiempo y costo no pueden ser negativos.");
                 return;
             }
 
-            // Cálculo automático de distancia (Pitágoras)
             double dx = destino.getCoorx() - origen.getCoorx();
             double dy = destino.getCoory() - origen.getCoory();
-            double distanciaPixeles = Math.sqrt((dx * dx) + (dy * dy));
+            double distanciaKm = Math.round((Math.sqrt((dx * dx) + (dy * dy)) / 30.0) * 100.0) / 100.0;
 
-            // Convertimos píxeles a Kilómetros y redondeamos a 2 decimales
-            double distanciaKm = Math.round((distanciaPixeles / 30.0) * 100.0) / 100.0;
+            // Invento un nombre de línea genérico por ahora (Ej: "Línea P1-P2"). Luego Wilmary, puedes agregar un TextField para esto porfa.
+            String nombreLinea = "Línea " + origen.getId() + "-" + destino.getId();
 
-            // Guardamos la ruta con todos los datos
-            sistemaInfo.agregarRuta(origen.getId(), destino.getId(), tiempo, costo, distanciaKm);
-            dbGestor.saveGrafo(sistemaInfo);
+            // Pasamos los objetos como tal. El boolean nos dice si fue exitoso o duplicado.
+            boolean conectada = sistemaInfo.agregarRuta(origen, destino, nombreLinea, tiempo, costo, distanciaKm);
 
-            dibujarGrafoVisual();
-            updateStatus(" Conexión creada exitosamente.");
-
-            // Limpiamos los ComboBox y TextFields al terminar
-            limpiarCamposRutas();
+            if (conectada) {
+                dbGestor.saveGrafo(sistemaInfo);
+                dibujarGrafoVisual();
+                updateStatus("✅ Conexión creada exitosamente.");
+                txtRutaTiempo.clear();
+                txtRutaCosto.clear();
+            } else {
+                updateStatus("⚠️ La ruta ya existe hacia ese destino.");
+            }
 
         } catch (NumberFormatException e) {
-            updateStatus("️ Error: Solo se aceptan valores numéricos en Tiempo y Costo.");
+            updateStatus("⚠️ Error: Solo ingrese números en Tiempo y Costo.");
         } catch (Exception e) {
-            updateStatus(" Error inesperado al conectar.");
+            updateStatus("⚠️ Error inesperado al conectar.");
+        }
+    }
+
+    private void handleEliminarRuta() {
+        Parada origen = comboRutaOrigen.getValue();
+        Parada destino = comboRutaDestino.getValue();
+
+        if (origen == null || destino == null) {
+            updateStatus("⚠️ Seleccione origen y destino para eliminar.");
+            return;
+        }
+
+        // Pasamos OBJETOS
+        if (sistemaInfo.eliminarRuta(origen, destino)) {
+            dbGestor.saveGrafo(sistemaInfo);
+            dibujarGrafoVisual();
+            updateStatus("🗑️ Línea eliminada.");
+        } else {
+            updateStatus("❌ No se encontró la ruta o ya fue eliminada.");
         }
     }
 
@@ -275,7 +274,7 @@ public class AppController {
         graphPane.getChildren().clear();
 
         Map<String, Parada> paradas = sistemaInfo.getParadas();
-        Map<String, List<Ruta>> adyacencia = sistemaInfo.getAdyacencia();
+        Map<String, Set<Ruta>> adyacencia = sistemaInfo.getAdyacencia();
 
         for (String idOrigen : adyacencia.keySet()) {
             Parada p = paradas.get(idOrigen);
