@@ -339,8 +339,8 @@ public class AppController {
                         mensaje = "Distancia a recorrer: " + distRedondeada + " Km.";
                         break;
                     case TRANSBORDOS:
-                        int conexiones = res.paradas.size() - 1;
-                        mensaje = "Ruta más directa: " + conexiones + " trasbordos/tramos.";
+                        int transbordosReales = (int) res.costoTotal;
+                        mensaje = "Ruta óptima: " + transbordosReales + " transbordo(s) necesario(s).";
                         break;
                 }
 
