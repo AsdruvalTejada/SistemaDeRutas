@@ -8,7 +8,6 @@ import java.util.*;
 
 public class CalculadoraRutas {
 
-    
     public static class ResultadoCamino {
         public List<String> paradas;
         public double costoTotal;
@@ -19,125 +18,115 @@ public class CalculadoraRutas {
         }
     }
 
-    private record NodoDistancia(String idParada, double distanciaAcumulada) {}
+    // AÑADIDO: Ahora el record guarda la "lineaLlegada" para saber en qué bus/tren vamos montados
+    private record NodoDistancia(String idParada, double distanciaAcumulada, String lineaLlegada) {}
 
-    // Este es nuestro "cerebro" o puente principal.
-    // La interfaz gráfica nos manda los datos del viaje y aquí decidimos qué algoritmo es el ideal para el trabajo.
     public ResultadoCamino calcularRutaIdeal(Grafo grafo, String origen, String destino, CriterioPesos criterio) {
-        //Dependiendo de lo que pida el usuario, usamos el algoritmo matemáticamente correcto
+        // AHORA TRANSBORDOS LO RESUELVE DIJKSTRA
         return switch (criterio) {
-            case TIEMPO, DISTANCIA -> dijkstra(grafo, origen, destino, criterio);
-            case TRANSBORDOS -> bfsTransbordos(grafo, origen, destino);
+            case TIEMPO, DISTANCIA, TRANSBORDOS -> dijkstra(grafo, origen, destino, criterio);
             case COSTO -> bellmanFord(grafo, origen, destino, criterio);
         };
     }
 
-    // 1. DIJKSTRA (Para Tiempo y Distancia - No para descuentos o pesos negativos)
+    // 1. DIJKSTRA SUPER-CARGADO (Tiempo, Distancia y Transbordos)
     private ResultadoCamino dijkstra(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio) {
         Map<String, Double> distancias = new HashMap<>();
         Map<String, String> predecesores = new HashMap<>();
+
+        // La memoria de la calculadora: Guarda por qué línea llegamos a una parada
+        Map<String, String> lineasLlegada = new HashMap<>();
+
         PriorityQueue<NodoDistancia> colaPrioridad = new PriorityQueue<>(Comparator.comparingDouble(NodoDistancia::distanciaAcumulada));
 
         for (String p : grafo.getParadas().keySet()) distancias.put(p, Double.MAX_VALUE);
         distancias.put(idOrigen, 0.0);
-        colaPrioridad.add(new NodoDistancia(idOrigen, 0.0));
+        colaPrioridad.add(new NodoDistancia(idOrigen, 0.0, null));
 
         while (!colaPrioridad.isEmpty()) {
             NodoDistancia actual = colaPrioridad.poll();
             String u = actual.idParada();
+            String lineaActual = actual.lineaLlegada();
 
             if (u.equals(idDestino)) break;
             if (actual.distanciaAcumulada() > distancias.get(u)) continue;
 
             for (Ruta ruta : grafo.getAdyacencia().getOrDefault(u, new HashSet<>())) {
                 String v = ruta.getIdDestino();
-                double pesoArista = ruta.getValorPeso(criterio);
-                double nuevaDistancia = distancias.get(u) + pesoArista;
+                String lineaSiguiente = ruta.getNombreLinea();
+
+                // Si buscamos menos transbordos, la distancia normal no importa (es 0).
+                double pesoArista = (criterio == CriterioPesos.TRANSBORDOS) ? 0.0 : ruta.getValorPeso(criterio);
+
+                // LÓGICA DE PENALIZACIÓN POR CAMBIO DE LÍNEA
+                double penalizacion = 0.0;
+                if (lineaActual != null && !lineaActual.equals(lineaSiguiente)) {
+                    if (criterio == CriterioPesos.TIEMPO) penalizacion = 5.0;       // 5 mins esperando otro bus
+                    else if (criterio == CriterioPesos.TRANSBORDOS) penalizacion = 1.0; // Sumamos 1 transbordo
+                }
+
+                double nuevaDistancia = distancias.get(u) + pesoArista + penalizacion;
 
                 if (nuevaDistancia < distancias.getOrDefault(v, Double.MAX_VALUE)) {
                     distancias.put(v, nuevaDistancia);
                     predecesores.put(v, u);
-                    colaPrioridad.add(new NodoDistancia(v, nuevaDistancia));
+                    lineasLlegada.put(v, lineaSiguiente); // Memorizamos la nueva línea
+                    colaPrioridad.add(new NodoDistancia(v, nuevaDistancia, lineaSiguiente));
                 }
             }
         }
         return reconstruirCamino(predecesores, distancias, idOrigen, idDestino);
     }
 
-    // 2. BELLMAN-FORD (Para Costo - Si Soporta descuentos o pesos negativos)
+    // 2. BELLMAN-FORD (Para Costo, porque soporta posibles subsidios o costos negativos)
     private ResultadoCamino bellmanFord(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio) {
         Map<String, Double> distancias = new HashMap<>();
         Map<String, String> predecesores = new HashMap<>();
+        Map<String, String> lineasLlegada = new HashMap<>();
 
         for (String p : grafo.getParadas().keySet()) distancias.put(p, Double.MAX_VALUE);
         distancias.put(idOrigen, 0.0);
 
         int V = grafo.getParadas().size();
 
-        // 1. Relajar todas las aristas V - 1 veces
         for (int i = 0; i < V - 1; i++) {
             for (String u : grafo.getAdyacencia().keySet()) {
                 for (Ruta ruta : grafo.getAdyacencia().get(u)) {
                     String v = ruta.getIdDestino();
+                    String lineaActual = lineasLlegada.get(u);
+                    String lineaSiguiente = ruta.getNombreLinea();
+
                     double pesoArista = ruta.getValorPeso(criterio);
 
-                    if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista < distancias.get(v)) {
-                        distancias.put(v, distancias.get(u) + pesoArista);
+                    // LÓGICA DE PENALIZACIÓN DE COSTO
+                    double penalizacion = 0.0;
+                    if (lineaActual != null && !lineaActual.equals(lineaSiguiente)) {
+                        penalizacion = 2.0; // $2 extra por el ticket de transbordo
+                    }
+
+                    if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista + penalizacion < distancias.get(v)) {
+                        distancias.put(v, distancias.get(u) + pesoArista + penalizacion);
                         predecesores.put(v, u);
+                        lineasLlegada.put(v, lineaSiguiente);
                     }
                 }
             }
         }
 
-        //2. Verificación de Ciclos Negativos para evitar bucles infinitos
+        // Verificación de Ciclos Negativos
         for (String u : grafo.getAdyacencia().keySet()) {
             for (Ruta ruta : grafo.getAdyacencia().get(u)) {
                 String v = ruta.getIdDestino();
                 double pesoArista = ruta.getValorPeso(criterio);
-
-                //Si después de V-1 iteraciones sigo encontrando rutas más baratas, hay un ciclo infinito
                 if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista < distancias.get(v)) {
-                    return null; //Retornamos null para que la interfaz sepa que falló y no haga el while infinito
+                    return null;
                 }
             }
         }
 
-        // 3. Si todo está seguro, reconstruimos el camino
         return reconstruirCamino(predecesores, distancias, idOrigen, idDestino);
     }
 
-    // 3. BFS (Para Transbordos - Busca la menor cantidad de saltos)
-    private ResultadoCamino bfsTransbordos(Grafo grafo, String idOrigen, String idDestino) {
-        Queue<String> cola = new LinkedList<>();
-        Set<String> visitados = new HashSet<>();
-        Map<String, String> predecesores = new HashMap<>();
-
-        cola.add(idOrigen);
-        visitados.add(idOrigen);
-
-        while (!cola.isEmpty()) {
-            String u = cola.poll();
-            if (u.equals(idDestino)) break;
-
-            for (Ruta ruta : grafo.getAdyacencia().getOrDefault(u, new HashSet<>())) {
-                String v = ruta.getIdDestino();
-                if (!visitados.contains(v)) {
-                    visitados.add(v);
-                    predecesores.put(v, u);
-                    cola.add(v);
-                }
-            }
-        }
-
-        // Para BFS, el "costo" es la cantidad de saltos (paradas - 1)
-        ResultadoCamino res = reconstruirCamino(predecesores, new HashMap<>(), idOrigen, idDestino);
-        if (res != null) {
-            res.costoTotal = res.paradas.size() - 1; // 3 paradas = 2 transbordos
-        }
-        return res;
-    }
-
-    // MÉTODO PARA ARMAR LA LISTA DE LA RUTA FINAL
     private ResultadoCamino reconstruirCamino(Map<String, String> predecesores, Map<String, Double> distancias, String idOrigen, String idDestino) {
         if (!predecesores.containsKey(idDestino) && !idOrigen.equals(idDestino)) {
             return null; // Inalcanzable
@@ -154,5 +143,91 @@ public class CalculadoraRutas {
 
         double costoFinal = distancias.isEmpty() ? 0 : distancias.get(idDestino);
         return new ResultadoCamino(caminoFinal, costoFinal);
+    }
+
+    // Usamos una clase interna para empaquetar la respuesta.
+    public static class ResultadoMatrizGlobal {
+        public double[][] matrizDistancias;
+        public int[][] matrizSiguientes;
+        public List<String> indiceAParadaId;     // Para saber qué ID (P1) es el índice [0]
+        public Map<String, Integer> paradaIdAIndice; // Para saber qué índice [0] es el ID (P1)
+
+        public ResultadoMatrizGlobal(double[][] distancias, int[][] siguientes, List<String> indexToId, Map<String, Integer> idToIndex) {
+            this.matrizDistancias = distancias;
+            this.matrizSiguientes = siguientes;
+            this.indiceAParadaId = indexToId;
+            this.paradaIdAIndice = idToIndex;
+        }
+    }
+
+    /**
+     * Función: calcularRutasGlobales
+     * Objetivo: Calcula la ruta más corta de todos los nodos contra todos los nodos
+     * utilizando el algoritmo de Floyd-Warshall (O(V^3)).
+     * @param grafoActivo   (Grafo) El grafo que contiene los nodos (paradas) y aristas (rutas).
+     * @param criterioViaje (CriterioPesos) El criterio por el cual se evaluará el peso de las rutas.
+     * @return              (ResultadoMatrizGlobal) Objeto que contiene las matrices de distancias,
+     * siguientes pasos y diccionarios de traducción de IDs.
+     */
+    public ResultadoMatrizGlobal calcularRutasGlobales(Grafo grafoActivo, CriterioPesos criterioViaje) {
+        int totalParadas = grafoActivo.getParadas().size();
+        double[][] matrizDistancias = new double[totalParadas][totalParadas];
+        int[][] matrizSiguientes = new int[totalParadas][totalParadas];
+
+        // 1. Crear diccionarios de traducción (ID -> Índice y viceversa)
+        List<String> indiceAParadaId = new ArrayList<>(grafoActivo.getParadas().keySet());
+        Map<String, Integer> paradaIdAIndice = new HashMap<>();
+
+        for (int i = 0; i < totalParadas; i++) {
+            paradaIdAIndice.put(indiceAParadaId.get(i), i);
+        }
+
+        // 2. Inicializar las matrices (Llenamos de "infinito" por defecto)
+        for (int fila = 0; fila < totalParadas; fila++) {
+            Arrays.fill(matrizDistancias[fila], Double.MAX_VALUE);
+            Arrays.fill(matrizSiguientes[fila], -1);
+            matrizDistancias[fila][fila] = 0.0; // La distancia a uno mismo es cero
+        }
+
+        // 3. Cargar las rutas existentes en la matriz inicial
+        for (String idOrigen : grafoActivo.getAdyacencia().keySet()) {
+            int indiceOrigen = paradaIdAIndice.get(idOrigen);
+
+            for (Ruta rutaActual : grafoActivo.getAdyacencia().get(idOrigen)) {
+                int indiceDestino = paradaIdAIndice.get(rutaActual.getIdDestino());
+
+                // Si el criterio es TRANSBORDOS, cada ruta pesa 1. Si no, tomamos su valor real.
+                double pesoRuta = (criterioViaje == CriterioPesos.TRANSBORDOS) ? 1.0 : rutaActual.getValorPeso(criterioViaje);
+
+                // Prevenimos que una ruta más cara sobreescriba una más barata si hay múltiples líneas
+                if (pesoRuta < matrizDistancias[indiceOrigen][indiceDestino]) {
+                    matrizDistancias[indiceOrigen][indiceDestino] = pesoRuta;
+                    matrizSiguientes[indiceOrigen][indiceDestino] = indiceDestino;
+                }
+            }
+        }
+
+        // 4. EL NÚCLEO DEL ALGORITMO (Los famosos 3 ciclos for anidados de Floyd)
+        for (int nodoPuente = 0; nodoPuente < totalParadas; nodoPuente++) {
+            for (int nodoOrigen = 0; nodoOrigen < totalParadas; nodoOrigen++) {
+                for (int nodoDestino = 0; nodoDestino < totalParadas; nodoDestino++) {
+
+                    boolean rutaValida = matrizDistancias[nodoOrigen][nodoPuente] != Double.MAX_VALUE &&
+                            matrizDistancias[nodoPuente][nodoDestino] != Double.MAX_VALUE;
+
+                    if (rutaValida) {
+                        double nuevaDistanciaCalculada = matrizDistancias[nodoOrigen][nodoPuente] + matrizDistancias[nodoPuente][nodoDestino];
+
+                        if (nuevaDistanciaCalculada < matrizDistancias[nodoOrigen][nodoDestino]) {
+                            matrizDistancias[nodoOrigen][nodoDestino] = nuevaDistanciaCalculada;
+                            // El siguiente paso para ir al Destino, es el mismo que para ir al nodo Puente
+                            matrizSiguientes[nodoOrigen][nodoDestino] = matrizSiguientes[nodoOrigen][nodoPuente];
+                        }
+                    }
+                }
+            }
+        }
+
+        return new ResultadoMatrizGlobal(matrizDistancias, matrizSiguientes, indiceAParadaId, paradaIdAIndice);
     }
 }
