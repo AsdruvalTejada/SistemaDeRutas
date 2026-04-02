@@ -130,7 +130,7 @@ public class AppController {
         comboUsuariosAdmin.setOnAction(e -> cargarDatosEnCampos());
 
         btnElegirAlternativa.setOnAction(e -> handleElegirAlternativa());
-        // btnVerTablaRutas lo dejamos para después
+        btnVerTablaRutas.setOnAction(e -> handleVerTablaRutas());
         btnSiguienteAlternativa.setOnAction(e -> handleSiguienteAlternativa());
         dibujarGrafoVisual();
         actualizarComboBoxesParadas();
@@ -488,6 +488,104 @@ public class AppController {
         updateStatus(" ¡Has fijado una ruta alternativa como tu camino final!");
     }
 
+    @FXML
+    private void handleVerTablaRutas() {
+        if (rutaPrincipalMemoria == null) {
+            updateStatus(" Debes calcular una ruta primero para ver la tabla.");
+            return;
+        }
+
+        javafx.stage.Stage stageTabla = new javafx.stage.Stage();
+        stageTabla.setTitle("Comparativa de Rutas Disponibles");
+
+        TableView<FilaRuta> tabla = new TableView<>();
+        tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        TableColumn<FilaRuta, String> colOpcion = new TableColumn<>("Tipo de Ruta");
+        colOpcion.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().opcion()));
+        colOpcion.setPrefWidth(120);
+        colOpcion.setStyle("-fx-alignment: CENTER; -fx-font-weight: bold;");
+
+        TableColumn<FilaRuta, String> colCamino = new TableColumn<>("Recorrido (Paradas)");
+        colCamino.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().camino()));
+        colCamino.setPrefWidth(350);
+
+        TableColumn<FilaRuta, String> colValor = new TableColumn<>("Costo / Tiempo");
+        colValor.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().valor()));
+        colValor.setPrefWidth(120);
+        colValor.setStyle("-fx-alignment: CENTER; -fx-text-fill: #e67e22; -fx-font-weight: bold;");
+
+        tabla.getColumns().addAll(colOpcion, colCamino, colValor);
+
+        ObservableList<FilaRuta> datosTabla = FXCollections.observableArrayList();
+
+        // Le ponemos ID 0 a la ruta principal
+        String caminoPrincipal = String.join(" ➔ ", rutaPrincipalMemoria.paradas);
+        datosTabla.add(new FilaRuta(0, "Plan A (Principal)", caminoPrincipal, obtenerTextoCriterio(criterioMemoria, rutaPrincipalMemoria.costoTotal)));
+
+        if (listaAlternativas != null) {
+            for (int i = 0; i < listaAlternativas.size(); i++) {
+                CalculadoraRutas.ResultadoCamino alt = listaAlternativas.get(i);
+                String caminoAlt = String.join(" ➔ ", alt.paradas);
+                // Le ponemos ID del 1 en adelante a las alternativas
+                datosTabla.add(new FilaRuta(i + 1, "Alternativa " + (i + 1), caminoAlt, obtenerTextoCriterio(criterioMemoria, alt.costoTotal)));
+            }
+        }
+
+        tabla.setItems(datosTabla);
+
+        Button btnFijarDesdeTabla = new Button("Fijar Ruta Seleccionada");
+        btnFijarDesdeTabla.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 15; -fx-cursor: hand;");
+        btnFijarDesdeTabla.setDisable(true); // Apagado hasta que toquen una fila
+
+        tabla.getSelectionModel().selectedItemProperty().addListener((obs, viejaSeleccion, nuevaSeleccion) -> {
+            if (nuevaSeleccion != null) {
+                btnFijarDesdeTabla.setDisable(false);
+            }
+        });
+
+        btnFijarDesdeTabla.setOnAction(e -> {
+            FilaRuta filaElegida = tabla.getSelectionModel().getSelectedItem();
+            if (filaElegida != null) {
+                // Si el ID es mayor a 0, significa que eligió una alternativa
+                if (filaElegida.id() > 0) {
+                    rutaPrincipalMemoria = listaAlternativas.get(filaElegida.id() - 1);
+                }
+
+                // 1. Dibujamos en verde la ruta seleccionada en el mapa grande
+                dibujarGrafoConCaminoEspecial(rutaPrincipalMemoria.paradas, false);
+
+                // 2. Actualizamos el panel principal
+                lblInfoAlternativa.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+                lblInfoAlternativa.setText("¡Ruta Fijada con Éxito!\n" + obtenerTextoCriterio(criterioMemoria, rutaPrincipalMemoria.costoTotal));
+                btnElegirAlternativa.setDisable(true);
+                updateStatus(" ¡Has fijado tu camino desde la tabla comparativa!");
+
+                // 3. Cerramos la ventanita de la tabla
+                stageTabla.close();
+            }
+        });
+
+        // --- DISEÑO DE LA VENTANA ---
+        VBox layoutTabla = new VBox(10);
+        layoutTabla.setStyle("-fx-padding: 20; -fx-background-color: #f1f2f6;");
+
+        Label lblTitulo = new Label("Análisis de Rutas Alternativas");
+        lblTitulo.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1e3a8a;");
+
+        Label lblSubtitulo = new Label("Haz clic en una ruta de la lista y presiona el botón para seleccionarla.");
+        lblSubtitulo.setStyle("-fx-text-fill: #7f8fa6;");
+
+        javafx.scene.layout.HBox panelBoton = new javafx.scene.layout.HBox(btnFijarDesdeTabla);
+        panelBoton.setStyle("-fx-alignment: CENTER_RIGHT; -fx-padding: 10 0 0 0;");
+
+        layoutTabla.getChildren().addAll(lblTitulo, lblSubtitulo, tabla, panelBoton);
+
+        javafx.scene.Scene scene = new javafx.scene.Scene(layoutTabla, 750, 400);
+        stageTabla.setScene(scene);
+        stageTabla.show();
+    }
+
     private void dibujarGrafoConCaminoEspecial(List<String> camino, boolean esAlternativa) {
         dibujarGrafoVisual(); // Limpia base
         Color colorCamino = esAlternativa ? Color.web("#e67e22") : Color.web("#27ae60");
@@ -836,5 +934,6 @@ public class AppController {
         graphPane.getChildren().add(preview);
     }
 
-    private void updateStatus(String msg) { if (lblEstado != null) lblEstado.setText(msg); }
+    private void updateStatus(String msg) { if (lblEstado != null) lblEstado.setText(msg); }// Molde de datos para la Tabla Comparativa (Ahora con ID secreto)
+    public record FilaRuta(int id, String opcion, String camino, String valor) {}
 }
