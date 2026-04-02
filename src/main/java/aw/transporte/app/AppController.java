@@ -577,7 +577,7 @@ public class AppController {
                         }
                     }
                     Color colorConexion = tieneVuelta ? Color.BLACK : Color.web("#222222");
-                    crearFlecha(p, d, colorConexion, 2.5, 1.0);
+                    crearFlecha(p, d, colorConexion, 2.5, 1.0, false);
                 }
             }
         }
@@ -681,7 +681,7 @@ public class AppController {
         }
     }
 
-    private void crearFlecha(Parada origen, Parada destino, Color color, double grosor, double opacidad) {
+    private void crearFlecha(Parada origen, Parada destino, Color color, double grosor, double opacidad, boolean esAlternativa) {
         double x1 = origen.getCoorx() * ZOOM + 100;
         double y1 = origen.getCoory() * ZOOM + 100;
         double x2 = destino.getCoorx() * ZOOM + 100;
@@ -689,8 +689,13 @@ public class AppController {
 
         Line l = new Line(x1, y1, x2, y2);
         l.setStroke(color);
-        l.setStrokeWidth(2.8);
-        l.setOpacity(1.0);
+        l.setStrokeWidth(grosor);
+        l.setOpacity(opacidad);
+
+        // Si es una ruta alternativa, la hacemos punteada
+        if (esAlternativa) {
+            l.getStrokeDashArray().addAll(10d, 10d);
+        }
 
         double dx = x2 - x1;
         double dy = y2 - y1;
@@ -724,7 +729,7 @@ public class AppController {
             Parada p2 = paradas.get(camino.get(i + 1));
 
             if (p1 != null && p2 != null) {
-                crearFlecha(p1, p2, Color.web("#27ae60"), 6.0, 1.0);
+                crearFlecha(p1, p2, Color.web("#27ae60"), 6.0, 1.0, false);
             }
         }
     }
