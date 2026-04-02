@@ -101,6 +101,24 @@
                   </Tab>
                </tabs>
 
+               <Tab fx:id="tabDiagnostico" text="Diagnóstico">
+                  <content>
+                     <VBox spacing="15.0" style="-fx-padding: 20;">
+                        <children>
+                           <Label style="-fx-text-fill: #57606f; -fx-font-weight: bold; -fx-font-size: 14px;" text="Herramientas de Administrador" />
+
+                           <Label style="-fx-text-fill: #747d8c;" text="Auditoría de Red (BFS): Escanea todo el sistema en busca de paradas que hayan quedado desconectadas o inaccesibles." wrapText="true" />
+                           <Button fx:id="btnAuditoriaBFS" maxWidth="Infinity" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" text=" Ejecutar Auditoría de Conectividad" />
+
+                           <Separator style="-fx-padding: 10 0;" />
+
+                           <Label style="-fx-text-fill: #747d8c;" text="Matriz de Costos (Floyd-Warshall): Genera una tabla global con la mejor ruta posible de todas las paradas contra todas las paradas." wrapText="true" />
+                           <Button fx:id="btnMatrizFloyd" maxWidth="Infinity" style="-fx-background-color: #8e44ad; -fx-text-fill: white;" text=" Generar Matriz Global (Todas vs Todas)" />
+                        </children>
+                     </VBox>
+                  </content>
+               </Tab>
+
                <Tab fx:id="tabUsuarios" text="Usuarios">
                   <content>
                      <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;">
@@ -130,6 +148,7 @@
                      </ScrollPane>
                   </content>
                </Tab>
+
             </TabPane>
 
 

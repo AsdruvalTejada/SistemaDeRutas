@@ -244,4 +244,34 @@ public class CalculadoraRutas {
         }
         return new ResultadoMatrizGlobal(matrizDistancias, matrizSiguientes, indiceAParadaId, paradaIdAIndice);
     }
+
+    /**
+     * Función: auditoriaConectividad
+     * Objetivo: Verificar qué paradas son inalcanzables desde un punto de origen usando BFS.
+     * @param grafo        (Grafo) El grafo que será escaneado.
+     * @param paradaInicio (String) ID del nodo donde iniciará la propagación de búsqueda.
+     * @return             (Set<String>) Conjunto de IDs correspondientes a paradas desconectadas.
+     */
+    public Set<String> auditoriaConectividad(Grafo grafo, String paradaInicio) {
+        Set<String> visitados = new HashSet<>();
+        Queue<String> cola = new LinkedList<>();
+
+        cola.add(paradaInicio);
+        visitados.add(paradaInicio);
+
+        while (!cola.isEmpty()) {
+            String u = cola.poll();
+            for (Ruta r : grafo.getAdyacencia().getOrDefault(u, new HashSet<>())) {
+                if (!visitados.contains(r.getIdDestino())) {
+                    visitados.add(r.getIdDestino());
+                    cola.add(r.getIdDestino());
+                }
+            }
+        }
+
+        // Al total de paradas le restamos las que pudimos visitar. Las que sobran, son huérfanas.
+        Set<String> huerfanas = new HashSet<>(grafo.getParadas().keySet());
+        huerfanas.removeAll(visitados);
+        return huerfanas;
+    }
 }

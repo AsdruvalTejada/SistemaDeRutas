@@ -60,6 +60,11 @@ public class AppController {
     @FXML private Button btnSiguienteAlternativa;
     @FXML private Button btnElegirAlternativa;
     @FXML private Button btnVerTablaRutas;
+
+    @FXML private Tab tabDiagnostico;
+    @FXML private Button btnAuditoriaBFS;
+    @FXML private Button btnMatrizFloyd;
+
     private CalculadoraRutas.ResultadoCamino rutaPrincipalMemoria;
     private List<CalculadoraRutas.ResultadoCamino> listaAlternativas;
     private int indiceAlternativaActual = 0;
@@ -128,10 +133,12 @@ public class AppController {
         btnModificarAdmin.setOnAction(e -> handleModificarAdmin());
         btnEliminarAdmin.setOnAction(e -> handleEliminarAdmin());
         comboUsuariosAdmin.setOnAction(e -> cargarDatosEnCampos());
-
         btnElegirAlternativa.setOnAction(e -> handleElegirAlternativa());
         btnVerTablaRutas.setOnAction(e -> handleVerTablaRutas());
         btnSiguienteAlternativa.setOnAction(e -> handleSiguienteAlternativa());
+        btnAuditoriaBFS.setOnAction(e -> handleAuditoriaBFS());
+        btnMatrizFloyd.setOnAction(e -> handleMatrizFloyd());
+
         dibujarGrafoVisual();
         actualizarComboBoxesParadas();
         aplicarFijadorDeTexto(comboRutaOrigen, "Seleccione Origen");
@@ -148,6 +155,7 @@ public class AppController {
                 tabPanePrincipal.getTabs().remove(tabParadas);
                 tabPanePrincipal.getTabs().remove(tabConexiones);
                 tabPanePrincipal.getTabs().remove(tabUsuarios);
+                tabPanePrincipal.getTabs().remove(tabDiagnostico); // <-- Pasajero no ve diagnóstico
             }
             updateStatus("Modo Pasajero: Solo lectura y cálculo de rutas.");
         } else {
@@ -584,6 +592,99 @@ public class AppController {
         javafx.scene.Scene scene = new javafx.scene.Scene(layoutTabla, 750, 400);
         stageTabla.setScene(scene);
         stageTabla.show();
+    }
+
+    @FXML
+    private void handleAuditoriaBFS() {
+        if (sistemaInfo.getParadas().isEmpty()) {
+            updateStatus("El mapa está vacío, no hay nada que auditar.");
+            return;
+        }
+
+        // Tomamos cualquier parada al azar para iniciar el escaneo
+        String paradaInicio = sistemaInfo.getParadas().keySet().iterator().next();
+
+        CalculadoraRutas motor = new CalculadoraRutas();
+        Set<String> huerfanas = motor.auditoriaConectividad(sistemaInfo, paradaInicio);
+
+        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+        alerta.setTitle("Reporte de Auditoría (BFS)");
+
+        if (huerfanas.isEmpty()) {
+            alerta.setHeaderText(" Estado de la red: SALUDABLE");
+            alerta.setContentText("Todas las paradas están correctamente conectadas. No hay puntos ciegos en el sistema.");
+        } else {
+            alerta.setAlertType(Alert.AlertType.WARNING);
+            alerta.setHeaderText("️ Advertencia: Se encontraron paradas huérfanas");
+
+            // Traducimos los ids a nombres reales para que sea legible
+            List<String> nombresHuerfanas = new ArrayList<>();
+            for (String id : huerfanas) {
+                nombresHuerfanas.add(sistemaInfo.getParadas().get(id).getNombre());
+            }
+
+            alerta.setContentText("Las siguientes paradas no pueden ser alcanzadas desde el nodo principal:\n" + String.join(", ", nombresHuerfanas));
+        }
+        alerta.showAndWait();
+    }
+
+    @FXML
+    private void handleMatrizFloyd() {
+        if (sistemaInfo.getParadas().isEmpty()) return;
+
+        // Por defecto usamos el criterio del ComboBox, si está vacío usamos TIEMPO
+        CriterioPesos criterio = comboCriterio.getValue() != null ? comboCriterio.getValue() : CriterioPesos.TIEMPO;
+
+        CalculadoraRutas motor = new CalculadoraRutas();
+        CalculadoraRutas.ResultadoMatrizGlobal resultadoGlobal = motor.calcularRutasGlobales(sistemaInfo, criterio);
+
+        javafx.stage.Stage stageMatriz = new javafx.stage.Stage();
+        stageMatriz.setTitle("Matriz Global de Distancias (Floyd-Warshall) - Criterio: " + criterio);
+
+        TableView<String[]> tabla = new TableView<>();
+
+        TableColumn<String[], String> colOrigen = new TableColumn<>("Origen \\ Destino");
+        colOrigen.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue()[0]));
+        colOrigen.setStyle("-fx-font-weight: bold; -fx-background-color: #ecf0f1;");
+        tabla.getColumns().add(colOrigen);
+
+        int totalNodos = resultadoGlobal.indiceAParadaId.size();
+
+        for (int i = 0; i < totalNodos; i++) {
+            final int colIndex = i + 1;
+            String nombreDestino = sistemaInfo.getParadas().get(resultadoGlobal.indiceAParadaId.get(i)).getNombre();
+
+            TableColumn<String[], String> colDinamica = new TableColumn<>(nombreDestino);
+            colDinamica.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue()[colIndex]));
+            colDinamica.setStyle("-fx-alignment: CENTER;");
+            tabla.getColumns().add(colDinamica);
+        }
+
+        ObservableList<String[]> filas = FXCollections.observableArrayList();
+        for (int fila = 0; fila < totalNodos; fila++) {
+            String[] datosFila = new String[totalNodos + 1];
+            datosFila[0] = sistemaInfo.getParadas().get(resultadoGlobal.indiceAParadaId.get(fila)).getNombre(); // Nombre origen
+
+            for (int col = 0; col < totalNodos; col++) {
+                double valor = resultadoGlobal.matrizDistancias[fila][col];
+                if (valor == Double.MAX_VALUE) {
+                    datosFila[col + 1] = "∞";
+                } else if (valor == 0.0) {
+                    datosFila[col + 1] = "-";
+                } else {
+                    datosFila[col + 1] = String.format("%.1f", valor);
+                }
+            }
+            filas.add(datosFila);
+        }
+
+        tabla.setItems(filas);
+
+        VBox layout = new VBox(tabla);
+        VBox.setVgrow(tabla, javafx.scene.layout.Priority.ALWAYS);
+        javafx.scene.Scene scene = new javafx.scene.Scene(layout, 900, 500);
+        stageMatriz.setScene(scene);
+        stageMatriz.show();
     }
 
     private void dibujarGrafoConCaminoEspecial(List<String> camino, boolean esAlternativa) {
