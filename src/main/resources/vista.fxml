@@ -11,6 +11,7 @@
       <AnchorPane fx:id="anchorMapa" style="-fx-background-color: #2f3542;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
             <Pane fx:id="graphPane" style="-fx-cursor: crosshair;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+            <Button fx:id="btnCerrarSesion" style="-fx-background-color: #eb4d4b; -fx-text-fill: white; -fx-background-radius: 6; -fx-font-weight: bold; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(235, 77, 75, 0.4), 10, 0, 0, 4);" text="Cerrar Sesión" AnchorPane.leftAnchor="25.0" AnchorPane.bottomAnchor="25.0" />
          </children>
       </AnchorPane>
 
@@ -52,6 +53,8 @@
                      </content>
                   </Tab>
 
+
+
                   <Tab fx:id="tabConexiones" text="Conexiones">
                      <content>
                         <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
@@ -89,7 +92,39 @@
                      </content>
                   </Tab>
                </tabs>
+
+               <Tab fx:id="tabUsuarios" text="Usuarios">
+                  <content>
+                     <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;">
+                        <content>
+                           <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
+                              <children>
+                                 <Label style="-fx-text-fill: #57606f; -fx-font-weight: bold;" text="Registrar Nuevo Administrador:" />
+                                 <TextField fx:id="txtNuevoAdminUser" promptText="Nombre de Usuario" />
+                                 <PasswordField fx:id="txtNuevoAdminClave" promptText="Contraseña" />
+                                 <TextField fx:id="txtNuevoAdminCorreo" promptText="Correo Electrónico" />
+                                 <Button fx:id="btnRegistrarAdmin" maxWidth="Infinity" style="-fx-background-color: linear-gradient(to right, #0033A0, #00227A); -fx-text-fill: white;" text="Guardar Nuevo Usuario" />
+
+                                 <Separator style="-fx-padding: 15 0 15 0;" />
+
+                                 <Label style="-fx-text-fill: #57606f; -fx-font-weight: bold;" text="Modificar / Eliminar Usuario:" />
+                                 <ComboBox fx:id="comboUsuariosAdmin" maxWidth="Infinity" promptText="Seleccione Usuario" />
+
+                                 <TextField fx:id="txtModAdminUser" promptText="Usuario a modificar" />
+                                 <PasswordField fx:id="txtModAdminClave" promptText="Contraseña" />
+                                 <TextField fx:id="txtModAdminCorreo" promptText="Correo Electrónico" />
+
+                                 <Button fx:id="btnModificarAdmin" maxWidth="Infinity" style="-fx-background-color: linear-gradient(to right, #69B3E7, #4A90E2); -fx-text-fill: white;" text="Actualizar Datos" />
+                                 <Button fx:id="btnEliminarAdmin" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #eb4d4b; -fx-border-color: #eb4d4b; -fx-border-radius: 5; -fx-cursor: hand;" text="Eliminar Usuario" />
+                              </children>
+                           </VBox>
+                        </content>
+                     </ScrollPane>
+                  </content>
+               </Tab>
             </TabPane>
+
+
 
             <VBox spacing="5.0">
                <children>

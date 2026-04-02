@@ -42,6 +42,20 @@ public class AppController {
     @FXML private Tab tabParadas;
     @FXML private Tab tabConexiones;
 
+    @FXML private Tab tabUsuarios;
+    @FXML private TextField txtNuevoAdminUser;
+    @FXML private PasswordField txtNuevoAdminClave;
+    @FXML private TextField txtNuevoAdminCorreo;
+    @FXML private Button btnRegistrarAdmin;
+    @FXML private Button btnCerrarSesion;
+    @FXML private ComboBox<String> comboUsuariosAdmin;
+    @FXML private TextField txtModAdminUser;
+    @FXML private PasswordField txtModAdminClave;
+    @FXML private TextField txtModAdminCorreo;
+    @FXML private Button btnModificarAdmin;
+    @FXML private Button btnEliminarAdmin;
+
+    private boolean usuarioEsAdmin = false;
     private double xOffset = 0;
     private double yOffset = 0;
 
@@ -99,7 +113,11 @@ public class AppController {
         btnCalcular.setOnAction(e -> handleCalcularRuta());
         btnModificarParada.setOnAction(e -> handleModificarParada());
         btnModificarRuta.setOnAction(e -> handleModificarRuta());
-
+        btnRegistrarAdmin.setOnAction(e -> handleRegistrarAdmin());
+        btnCerrarSesion.setOnAction(e -> handleCerrarSesion());
+        btnModificarAdmin.setOnAction(e -> handleModificarAdmin());
+        btnEliminarAdmin.setOnAction(e -> handleEliminarAdmin());
+        comboUsuariosAdmin.setOnAction(e -> cargarDatosEnCampos());
 
         dibujarGrafoVisual();
         actualizarComboBoxesParadas();
@@ -111,16 +129,20 @@ public class AppController {
     }
 
     public void configurarPermisos(boolean esAdmin) {
+        this.usuarioEsAdmin = esAdmin;
         if (!esAdmin) {
-            if (tabPanePrincipal != null && tabParadas != null && tabConexiones != null) {
+            if (tabPanePrincipal != null) {
                 tabPanePrincipal.getTabs().remove(tabParadas);
                 tabPanePrincipal.getTabs().remove(tabConexiones);
+                tabPanePrincipal.getTabs().remove(tabUsuarios);
             }
             updateStatus("Modo Pasajero: Solo lectura y cálculo de rutas.");
         } else {
             updateStatus("Modo Administrador: Acceso total.");
+            actualizarComboUsuarios();
         }
     }
+
     private void actualizarComboBoxesParadas() {
         List<Parada> listaParadas = new ArrayList<>(sistemaInfo.getParadas().values());
         listaParadas.sort(Comparator.comparing(Parada::getNombre));
@@ -393,6 +415,141 @@ public class AppController {
         }
     }
 
+    private void handleRegistrarAdmin() {
+        String user = txtNuevoAdminUser.getText().trim();
+        String clave = txtNuevoAdminClave.getText().trim();
+        String correo = txtNuevoAdminCorreo.getText().trim();
+
+        if (user.isEmpty() || clave.isEmpty() || correo.isEmpty()) {
+            updateStatus(" Por favor, llene todos los campos.");
+            return;
+        }
+
+        // GUARDAMOS EN EL JSON
+        aw.transporte.data.GestorUsuarios gestor = new aw.transporte.data.GestorUsuarios();
+        java.util.List<aw.transporte.model.Usuario> lista = gestor.cargarUsuarios();
+
+        // Verificamos que el usuario no exista ya
+        for (aw.transporte.model.Usuario u : lista) {
+            if (u.getUsername().equals(user)) {
+                updateStatus(" Error: El usuario ya existe.");
+                return;
+            }
+        }
+
+        lista.add(new aw.transporte.model.Usuario(user, clave, correo));
+        gestor.guardarUsuarios(lista);
+
+        updateStatus(" ¡Éxito! Usuario '" + user + "' registrado.");
+        actualizarComboUsuarios();
+        txtNuevoAdminUser.clear(); txtNuevoAdminClave.clear(); txtNuevoAdminCorreo.clear();
+    }
+
+    // Actualiza el ComboBox cada vez que hacemos un cambio
+    public void actualizarComboUsuarios() {
+        if (comboUsuariosAdmin == null) return;
+        comboUsuariosAdmin.getItems().clear();
+        aw.transporte.data.GestorUsuarios gestor = new aw.transporte.data.GestorUsuarios();
+        java.util.List<aw.transporte.model.Usuario> lista = gestor.cargarUsuarios();
+        for (aw.transporte.model.Usuario u : lista) {
+            comboUsuariosAdmin.getItems().add(u.getUsername());
+        }
+    }
+
+    // Llena los campos de texto cuando seleccionas un usuario en el ComboBox
+    private void cargarDatosEnCampos() {
+        String usuarioSeleccionado = comboUsuariosAdmin.getValue();
+        if (usuarioSeleccionado == null) return;
+
+        aw.transporte.data.GestorUsuarios gestor = new aw.transporte.data.GestorUsuarios();
+        java.util.List<aw.transporte.model.Usuario> lista = gestor.cargarUsuarios();
+
+        for (aw.transporte.model.Usuario u : lista) {
+            if (u.getUsername().equals(usuarioSeleccionado)) {
+                txtModAdminUser.setText(u.getUsername());
+                txtModAdminClave.setText(u.getPassword());
+                txtModAdminCorreo.setText(u.getCorreo());
+                break;
+            }
+        }
+    }
+
+    private void handleModificarAdmin() {
+        String originalUser = comboUsuariosAdmin.getValue();
+        if (originalUser == null) {
+            updateStatus(" Por favor, seleccione un usuario de la lista.");
+            return;
+        }
+
+        String newUser = txtModAdminUser.getText().trim();
+        String newClave = txtModAdminClave.getText().trim();
+        String newCorreo = txtModAdminCorreo.getText().trim();
+
+        if (newUser.isEmpty() || newClave.isEmpty() || newCorreo.isEmpty()) {
+            updateStatus(" Todos los campos son obligatorios para modificar.");
+            return;
+        }
+
+        aw.transporte.data.GestorUsuarios gestor = new aw.transporte.data.GestorUsuarios();
+        java.util.List<aw.transporte.model.Usuario> lista = gestor.cargarUsuarios();
+
+        // Buscamos el usuario viejo y lo reemplazamos por el nuevo
+        for (int i = 0; i < lista.size(); i++) {
+            if (lista.get(i).getUsername().equals(originalUser)) {
+                lista.set(i, new aw.transporte.model.Usuario(newUser, newClave, newCorreo));
+                break;
+            }
+        }
+
+        gestor.guardarUsuarios(lista);
+        updateStatus(" ¡Usuario modificado exitosamente!");
+        actualizarComboUsuarios();
+    }
+
+    private void handleEliminarAdmin() {
+        String targetUser = comboUsuariosAdmin.getValue();
+        if (targetUser == null) {
+            updateStatus(" Seleccione el usuario que desea eliminar.");
+            return;
+        }
+
+        if (targetUser.equals("admin")) {
+            updateStatus(" Acción denegada: No puede eliminar al administrador principal.");
+            return;
+        }
+
+        aw.transporte.data.GestorUsuarios gestor = new aw.transporte.data.GestorUsuarios();
+        java.util.List<aw.transporte.model.Usuario> lista = gestor.cargarUsuarios();
+
+        // Eliminamos si el nombre coincide
+        lista.removeIf(u -> u.getUsername().equals(targetUser));
+        gestor.guardarUsuarios(lista);
+
+        updateStatus(" Usuario eliminado del sistema.");
+        txtModAdminUser.clear(); txtModAdminClave.clear(); txtModAdminCorreo.clear();
+        actualizarComboUsuarios();
+    }
+
+    private void handleCerrarSesion() {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/Login.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+            javafx.stage.Stage stage = new javafx.stage.Stage();
+            stage.setTitle("Inicio de Sesión - Sistema de Rutas");
+            stage.setScene(new javafx.scene.Scene(root, 350, 450));
+            stage.setResizable(false);
+            stage.show();
+
+            // Cierra la ventana principal gigante
+            javafx.stage.Stage mainStage = (javafx.stage.Stage) btnCerrarSesion.getScene().getWindow();
+            mainStage.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            updateStatus("Error al intentar cerrar sesión.");
+        }
+    }
+
     private void dibujarGrafoVisual() {
         if (graphPane == null) return;
         graphPane.getChildren().clear();
@@ -400,6 +557,7 @@ public class AppController {
         Map<String, Parada> paradas = sistemaInfo.getParadas();
         Map<String, Set<Ruta>> adyacencia = sistemaInfo.getAdyacencia();
 
+        // 1. Dibujar las conexiones (Rutas / Flechas)
         for (String idOrigen : adyacencia.keySet()) {
             Parada p = paradas.get(idOrigen);
             if (p == null) continue;
@@ -424,26 +582,41 @@ public class AppController {
             }
         }
 
-        // 2. Dibujar las paradas (Nodos)
+        // 2. Dibujar las paradas (Nodos / Círculos)
         for (Parada p : paradas.values()) {
             double x = p.getCoorx() * ZOOM + 100;
             double y = p.getCoory() * ZOOM + 100;
 
-            Circle c = new Circle(x, y, 12, Color.web("#1e3a8a")); // Azul oscuro institucional
+            Circle c = new Circle(x, y, 12, Color.web("#1e3a8a"));
             c.setStroke(Color.WHITE);
             c.setStrokeWidth(2);
             c.setEffect(new javafx.scene.effect.DropShadow(5, Color.BLACK));
-            c.setOnMouseEntered(e -> c.setCursor(javafx.scene.Cursor.HAND));
 
-            c.setOnMousePressed(e -> c.setCursor(javafx.scene.Cursor.CLOSED_HAND));
 
+            // 1. Mostrar la manito solo si es admin
+            c.setOnMouseEntered(e -> {
+                if (usuarioEsAdmin) c.setCursor(javafx.scene.Cursor.HAND);
+            });
+
+            // 2. Al presionar el clic
+            c.setOnMousePressed(e -> {
+                if (!usuarioEsAdmin) return; // BLOQUEO PASAJERO
+                c.setCursor(javafx.scene.Cursor.CLOSED_HAND);
+            });
+
+            // 3. Al arrastrar
             c.setOnMouseDragged(e -> {
+                if (!usuarioEsAdmin) return; // BLOQUEO PASAJERO
+
                 // Movimiento visual inmediato
                 c.setCenterX(e.getX());
                 c.setCenterY(e.getY());
             });
 
+            // 4. Al soltar el clic (Guardar en la base de datos)
             c.setOnMouseReleased(e -> {
+                if (!usuarioEsAdmin) return; // BLOQUEO PASAJERO
+
                 if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
                     c.setCursor(javafx.scene.Cursor.HAND);
 
@@ -459,8 +632,11 @@ public class AppController {
                 }
             });
 
+            // 5. Al hacer Clic Derecho (Eliminar Parada)
             c.setOnMouseClicked(event -> {
                 event.consume();
+
+                if (!usuarioEsAdmin) return; // ¡BLOQUEO PASAJERO PARA QUE NO BORRE PARADAS!
 
                 if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
                     Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
@@ -479,6 +655,7 @@ public class AppController {
                     }
                 }
             });
+
 
             Label nameLabel = new Label(p.getNombre());
             nameLabel.setStyle(

@@ -24,19 +24,6 @@ public class LoginController {
         btnPasajero.setOnAction(e -> abrirPantallaPrincipal(false));
     }
 
-    private void handleLoginAdmin() {
-        String user = txtUsuario.getText().trim();
-        String pass = txtPassword.getText().trim();
-
-        if (user.equals("admin") && pass.equals("1234")) {
-            // ¡AQUÍ LUEGO AGREGAREMOS EL CÓDIGO DEL CORREO JAVAMAIL!
-            abrirPantallaPrincipal(true);
-        } else {
-            lblErrorLogin.setText("Usuario o contraseña incorrectos.");
-            lblErrorLogin.setVisible(true);
-        }
-    }
-
     private void abrirPantallaPrincipal(boolean esAdmin) {
         try {
             java.net.URL url = getClass().getResource("/vista.fxml");
@@ -68,6 +55,58 @@ public class LoginController {
         } catch (Exception e) {
             e.printStackTrace();
             lblErrorLogin.setText("Error al cargar la aplicación principal.");
+            lblErrorLogin.setVisible(true);
+        }
+    }
+
+    private void handleLoginAdmin() {
+        String user = txtUsuario.getText().trim();
+        String pass = txtPassword.getText().trim();
+
+        aw.transporte.data.GestorUsuarios gestor = new aw.transporte.data.GestorUsuarios();
+        java.util.List<aw.transporte.model.Usuario> usuarios = gestor.cargarUsuarios();
+
+        boolean credencialesValidas = false;
+        String correoDestino = "";
+
+        // 1. Buscamos si el usuario y la clave coinciden
+        for (aw.transporte.model.Usuario u : usuarios) {
+            if (u.getUsername().equals(user) && u.getPassword().equals(pass)) {
+                credencialesValidas = true;
+                correoDestino = u.getCorreo();
+                break;
+            }
+        }
+
+        // 2. Si las credenciales son correctas, pasamos al Paso 2 de seguridad
+        if (credencialesValidas) {
+
+            if (correoDestino != null && !correoDestino.isEmpty()) {
+                // Generamos el código y disparamos el correo
+                String codigoReal = aw.transporte.logic.MailService.enviarCodigoVerificacion(correoDestino, user);
+
+                // Mostramos la ventanita emergente pidiendo el código
+                javafx.scene.control.TextInputDialog dialog = new javafx.scene.control.TextInputDialog();
+                dialog.setTitle("Verificación de Seguridad");
+                dialog.setHeaderText("🔑 Hemos enviado un código a:\n" + correoDestino);
+                dialog.setContentText("Ingrese el código de 6 dígitos:");
+
+                java.util.Optional<String> resultado = dialog.showAndWait();
+
+                // Si el usuario presiona OK y el código coincide
+                if (resultado.isPresent() && resultado.get().equals(codigoReal)) {
+                    abrirPantallaPrincipal(true); // ¡ACCESO CONCEDIDO!
+                } else {
+                    lblErrorLogin.setText("Acceso denegado: Código incorrecto o cancelado.");
+                    lblErrorLogin.setVisible(true);
+                }
+            } else {
+                // Si el usuario no tiene correo registrado (ej: el admin por defecto) entra directo
+                abrirPantallaPrincipal(true);
+            }
+
+        } else {
+            lblErrorLogin.setText("Usuario o contraseña incorrectos.");
             lblErrorLogin.setVisible(true);
         }
     }
