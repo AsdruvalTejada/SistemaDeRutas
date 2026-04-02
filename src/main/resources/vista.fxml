@@ -29,9 +29,9 @@
                </font>
             </Label>
 
-            <TabPane style="-fx-background-color: transparent;" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+            <TabPane fx:id="tabPanePrincipal" style="-fx-background-color: transparent;" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
                <tabs>
-                  <Tab text="Paradas">
+                  <Tab fx:id="tabParadas" text="Paradas">
                      <content>
                         <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
                            <children>
@@ -52,18 +52,22 @@
                      </content>
                   </Tab>
 
-                  <Tab text="Conexiones">
+                  <Tab fx:id="tabConexiones" text="Conexiones">
                      <content>
                         <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
                            <children>
                               <ComboBox fx:id="comboRutaOrigen" maxWidth="Infinity" promptText="Seleccione Origen" />
                               <ComboBox fx:id="comboRutaDestino" maxWidth="Infinity" promptText="Seleccione Destino" />
+
                               <HBox spacing="10.0">
                                  <children>
                                     <TextField fx:id="txtRutaTiempo" promptText="Minutos" HBox.hgrow="ALWAYS" />
                                     <TextField fx:id="txtRutaCosto" promptText="Costo $" HBox.hgrow="ALWAYS" />
                                  </children>
                               </HBox>
+
+                              <Label style="-fx-text-fill: #57606f; -fx-font-weight: bold;" text="Línea a la que pertenece:" />
+                              <ComboBox fx:id="comboNombreLinea" maxWidth="Infinity" promptText="Seleccione o escriba una línea (Ej: Línea Norte)" editable="true" />
                               <Button fx:id="btnAgregarRuta" maxWidth="Infinity" text="Conectar Paradas" />
                               <Button fx:id="btnModificarRuta" maxWidth="Infinity" text="Actualizar Costo/Tiempo" />
                               <Button fx:id="btnEliminarRuta" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #eb4d4b; -fx-border-color: #eb4d4b; -fx-border-radius: 5; -fx-cursor: hand;" text="Eliminar Conexión" />

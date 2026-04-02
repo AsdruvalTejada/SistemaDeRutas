@@ -36,6 +36,12 @@ public class AppController {
     @FXML private Button btnModificarParada;
     @FXML private Button btnModificarRuta;
     @FXML private VBox panelFlotante;
+    @FXML private ComboBox<String> comboNombreLinea;
+
+    @FXML private TabPane tabPanePrincipal;
+    @FXML private Tab tabParadas;
+    @FXML private Tab tabConexiones;
+
     private double xOffset = 0;
     private double yOffset = 0;
 
@@ -64,7 +70,6 @@ public class AppController {
             updateStatus("Ubicación marcada.");
         });
 
-        // Arrastrar el panel
         if (panelFlotante != null) {
 
             // Cambiamos el cursor a una mano abierta para indicar que se puede mover
@@ -95,8 +100,9 @@ public class AppController {
         btnModificarParada.setOnAction(e -> handleModificarParada());
         btnModificarRuta.setOnAction(e -> handleModificarRuta());
 
+
         dibujarGrafoVisual();
-        actualizarComboBoxesParadas(); // Cargamos las listas al iniciar
+        actualizarComboBoxesParadas();
         aplicarFijadorDeTexto(comboRutaOrigen, "Seleccione Origen");
         aplicarFijadorDeTexto(comboRutaDestino, "Seleccione Destino");
         aplicarFijadorDeTexto(comboCalcOrigen, "Punto de Partida");
@@ -104,6 +110,17 @@ public class AppController {
         aplicarFijadorDeTextoCriterio(comboCriterio, "Criterio de Viaje");
     }
 
+    public void configurarPermisos(boolean esAdmin) {
+        if (!esAdmin) {
+            if (tabPanePrincipal != null && tabParadas != null && tabConexiones != null) {
+                tabPanePrincipal.getTabs().remove(tabParadas);
+                tabPanePrincipal.getTabs().remove(tabConexiones);
+            }
+            updateStatus("Modo Pasajero: Solo lectura y cálculo de rutas.");
+        } else {
+            updateStatus("Modo Administrador: Acceso total.");
+        }
+    }
     private void actualizarComboBoxesParadas() {
         List<Parada> listaParadas = new ArrayList<>(sistemaInfo.getParadas().values());
         listaParadas.sort(Comparator.comparing(Parada::getNombre));
@@ -233,13 +250,19 @@ public class AppController {
             double dy = destino.getCoory() - origen.getCoory();
             double distanciaKm = Math.round((Math.sqrt((dx * dx) + (dy * dy)) / 30.0) * 100.0) / 100.0;
 
-            String nombreLinea = "Línea " + origen.getId() + "-" + destino.getId();
+
+            String nombreLinea = comboNombreLinea.getValue();
+            if (nombreLinea == null || nombreLinea.trim().isEmpty()) {
+                updateStatus(" Por favor, seleccione o escriba el nombre de la línea.");
+                return;
+            }
 
             boolean conectada = sistemaInfo.agregarRuta(origen, destino, nombreLinea, tiempo, costo, distanciaKm);
 
             if (conectada) {
                 dbGestor.saveGrafo(sistemaInfo);
                 dibujarGrafoVisual();
+                actualizarComboBoxLineas();
                 updateStatus(" Conexión creada exitosamente.");
                 txtRutaTiempo.clear();
                 txtRutaCosto.clear();
@@ -307,6 +330,20 @@ public class AppController {
         } catch (NumberFormatException e) {
             updateStatus(" Por favor, ingrese valores numéricos válidos.");
         }
+    }
+
+    private void actualizarComboBoxLineas() {
+        if (comboNombreLinea == null) return;
+
+        Set<String> lineasUnicas = new HashSet<>();
+        for (Set<aw.transporte.model.Ruta> rutas : sistemaInfo.getAdyacencia().values()) {
+            for (aw.transporte.model.Ruta r : rutas) {
+                lineasUnicas.add(r.getNombreLinea());
+            }
+        }
+
+        comboNombreLinea.setItems(FXCollections.observableArrayList(lineasUnicas));
+        comboNombreLinea.setEditable(true);
     }
 
     private void handleCalcularRuta() {
@@ -381,7 +418,7 @@ public class AppController {
                             }
                         }
                     }
-                    Color colorConexion = tieneVuelta ? Color.BLACK : Color.web("#bdc3c7");
+                    Color colorConexion = tieneVuelta ? Color.BLACK : Color.web("#222222");
                     crearFlecha(p, d, colorConexion, 2.5, 1.0);
                 }
             }

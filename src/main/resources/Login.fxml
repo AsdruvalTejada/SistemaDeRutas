@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="450.0" prefWidth="350.0" style="-fx-background-color: #f8f9fa;" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="aw.transporte.app.LoginController">
+    <children>
+        <VBox alignment="CENTER" spacing="20.0" AnchorPane.bottomAnchor="30.0" AnchorPane.leftAnchor="30.0" AnchorPane.rightAnchor="30.0" AnchorPane.topAnchor="30.0">
+            <children>
+                <Label styleClass="titulo-app" text="Sistema de Rutas" textAlignment="CENTER">
+                    <font>
+                        <Font name="System Bold" size="24.0" />
+                    </font>
+                </Label>
+                <Label style="-fx-text-fill: #7f8fa6;" text="Bienvenido. Seleccione su modo de acceso:" textAlignment="CENTER" wrapText="true" />
+
+                <Separator prefWidth="200.0" />
+
+                <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #ffffff; -fx-padding: 20; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.05), 10, 0.1, 0, 4);">
+                    <children>
+                        <Label style="-fx-font-weight: bold; -fx-text-fill: #57606f;" text="Acceso Público" />
+                        <Label style="-fx-text-fill: #7f8fa6; -fx-font-size: 11px;" text="Solo consultar rutas y tiempos." />
+                        <Button fx:id="btnPasajero" maxWidth="Infinity" style="-fx-background-color: #cbd5e1; -fx-text-fill: #2f3542;" text="Entrar como Pasajero" />
+                    </children>
+                </VBox>
+
+                <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #ffffff; -fx-padding: 20; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.05), 10, 0.1, 0, 4);">
+                    <children>
+                        <Label style="-fx-font-weight: bold; -fx-text-fill: #57606f;" text="Acceso Administrativo" />
+                        <TextField fx:id="txtUsuario" promptText="Usuario" />
+                        <PasswordField fx:id="txtPassword" promptText="Contraseña" />
+                        <Button fx:id="btnAdmin" maxWidth="Infinity" style="-fx-background-color: linear-gradient(to right, #0033A0, #00227A); -fx-text-fill: white;" text="Iniciar Sesión" />
+                        <Label fx:id="lblErrorLogin" style="-fx-text-fill: #eb4d4b; -fx-font-size: 11px;" text="" visible="false" />
+                    </children>
+                </VBox>
+            </children>
+        </VBox>
+    </children>
+</AnchorPane>

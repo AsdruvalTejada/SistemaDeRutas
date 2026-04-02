@@ -18,7 +18,7 @@ public class CalculadoraRutas {
         }
     }
 
-    // AÑADIDO: Ahora el record guarda la "lineaLlegada" para saber en qué bus/tren vamos montados
+    // Ahora el record guarda la "lineaLlegada" para saber en qué bus/tren vamos montados
     private record NodoDistancia(String idParada, double distanciaAcumulada, String lineaLlegada) {}
 
     public ResultadoCamino calcularRutaIdeal(Grafo grafo, String origen, String destino, CriterioPesos criterio) {
@@ -29,7 +29,7 @@ public class CalculadoraRutas {
         };
     }
 
-    // 1. DIJKSTRA SUPER-CARGADO (Tiempo, Distancia y Transbordos)
+    // 1. DIJKSTRA (Tiempo, Distancia y Transbordos)
     private ResultadoCamino dijkstra(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio) {
         Map<String, Double> distancias = new HashMap<>();
         Map<String, String> predecesores = new HashMap<>();

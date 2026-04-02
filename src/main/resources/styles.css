@@ -1,10 +1,10 @@
 /* --- NUEVO: Estilos para el tirador profesional --- */
 
-/* 1. El tirador real: una pequeña barra gris redondeada */
+/* 1. El tirador real: una pequeña barra gris oscura redondeada */
 .tirador-ventana {
     -fx-pref-width: 40px;
     -fx-pref-height: 4px;
-    -fx-background-color: #cbd5e1; /* Un gris muy suave */
+    -fx-background-color: #57606f; /* Gris oscuro elegante que hace juego con tus títulos */
     -fx-background-radius: 2px;
 }
 
@@ -18,7 +18,7 @@
 
 /* Efecto visual al pasar por encima del tirador */
 .barra-arrastre:hover .tirador-ventana {
-    -fx-background-color: #94a3b8; /* Se oscurece un poco al pasar el mouse */
+    -fx-background-color: #2f3542; /* Se vuelve casi negro al pasar el mouse para indicar que se puede agarrar */
 }
 /* 1. Fondo General y Tipografía Limpia */
 .root {

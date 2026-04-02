@@ -8,15 +8,15 @@ import javafx.stage.Stage;
 public class Main extends Application {
     @Override
     public void start(Stage stage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista.fxml"));
-        loader.setController(new AppController());
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/Login.fxml"));
 
         Scene scene = new Scene(loader.load());
-        stage.setTitle("Sistema de Rutas");
+        stage.setTitle("Inicio de Sesión - Sistema de Rutas");
         stage.setScene(scene);
 
-        //Forzamos a que la aplicación inicie en pantalla completa para mejor visualización del mapa
-        stage.setMaximized(true);
+        stage.setMaximized(false);
+        stage.setResizable(false);
+
         stage.show();
     }
 
