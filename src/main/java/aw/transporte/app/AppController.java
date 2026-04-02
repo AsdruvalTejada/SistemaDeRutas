@@ -55,6 +55,16 @@ public class AppController {
     @FXML private Button btnModificarAdmin;
     @FXML private Button btnEliminarAdmin;
 
+    @FXML private VBox panelAlternativa;
+    @FXML private Label lblInfoAlternativa;
+    @FXML private Button btnSiguienteAlternativa;
+    @FXML private Button btnElegirAlternativa;
+    @FXML private Button btnVerTablaRutas;
+    private CalculadoraRutas.ResultadoCamino rutaPrincipalMemoria;
+    private List<CalculadoraRutas.ResultadoCamino> listaAlternativas;
+    private int indiceAlternativaActual = 0;
+    private CriterioPesos criterioMemoria;
+
     private boolean usuarioEsAdmin = false;
     private double xOffset = 0;
     private double yOffset = 0;
@@ -119,6 +129,9 @@ public class AppController {
         btnEliminarAdmin.setOnAction(e -> handleEliminarAdmin());
         comboUsuariosAdmin.setOnAction(e -> cargarDatosEnCampos());
 
+        btnElegirAlternativa.setOnAction(e -> handleElegirAlternativa());
+        // btnVerTablaRutas lo dejamos para después
+        btnSiguienteAlternativa.setOnAction(e -> handleSiguienteAlternativa());
         dibujarGrafoVisual();
         actualizarComboBoxesParadas();
         aplicarFijadorDeTexto(comboRutaOrigen, "Seleccione Origen");
@@ -368,6 +381,7 @@ public class AppController {
         comboNombreLinea.setEditable(true);
     }
 
+    @FXML
     private void handleCalcularRuta() {
         try {
             Parada origen = comboCalcOrigen.getValue();
@@ -379,40 +393,122 @@ public class AppController {
                 return;
             }
 
-            CalculadoraRutas.ResultadoCamino res = new CalculadoraRutas().calcularRutaIdeal(sistemaInfo,
-                    origen.getId(), destino.getId(), criterio);
+            criterioMemoria = criterio; // <-- 1. GUARDAMOS EL CRITERIO EN MEMORIA
+            CalculadoraRutas motor = new CalculadoraRutas();
+            rutaPrincipalMemoria = motor.calcularRutaIdeal(sistemaInfo, origen.getId(), destino.getId(), criterio);
 
-            if (res != null) {
-                dibujarGrafoConCamino(res.paradas);
+            if (rutaPrincipalMemoria != null) {
+                listaAlternativas = motor.obtenerAlternativas(sistemaInfo, origen.getId(), destino.getId(), criterio);
 
-                String mensaje = "";
-                switch (criterio) {
-                    case TIEMPO:
-                        mensaje = "Tiempo estimado: " + res.costoTotal + " minutos.";
-                        break;
-                    case COSTO:
-                        mensaje = "Costo del viaje: $" + res.costoTotal;
-                        break;
-                    case DISTANCIA:
-                        double distRedondeada = Math.round(res.costoTotal * 100.0) / 100.0;
-                        mensaje = "Distancia a recorrer: " + distRedondeada + " Km.";
-                        break;
-                    case TRANSBORDOS:
-                        int transbordosReales = (int) res.costoTotal;
-                        mensaje = "Ruta óptima: " + transbordosReales + " transbordo(s) necesario(s).";
-                        break;
+                if (listaAlternativas != null && !listaAlternativas.isEmpty()) {
+                    indiceAlternativaActual = 1;
+                    panelAlternativa.setVisible(true);
+                    panelAlternativa.setManaged(true);
+
+                    CalculadoraRutas.ResultadoCamino alt1 = listaAlternativas.get(0);
+                    lblInfoAlternativa.setStyle("-fx-text-fill: #e67e22; -fx-font-weight: bold;");
+                    lblInfoAlternativa.setText("Alternativa 1 de " + listaAlternativas.size() +
+                            "\n" + obtenerTextoCriterio(criterioMemoria, alt1.costoTotal)); // Usa memoria
+
+                    dibujarGrafoConCaminoEspecial(alt1.paradas, true);
+                    btnElegirAlternativa.setDisable(false);
+                    updateStatus("Ruta Principal: " + obtenerTextoCriterio(criterioMemoria, rutaPrincipalMemoria.costoTotal));
+
+                } else {
+                    dibujarGrafoConCaminoEspecial(rutaPrincipalMemoria.paradas, false);
+                    panelAlternativa.setVisible(false);
+                    panelAlternativa.setManaged(false);
+                    updateStatus("Ruta única encontrada | " + obtenerTextoCriterio(criterioMemoria, rutaPrincipalMemoria.costoTotal));
                 }
 
-                updateStatus(" Ruta encontrada | " + mensaje);
-
-                limpiarCamposViaje();
-
             } else {
-                updateStatus(" No hay ruta disponible o están desconectadas.");
+                updateStatus(" No hay ruta disponible entre estos puntos.");
+                panelAlternativa.setVisible(false);
+                panelAlternativa.setManaged(false);
             }
         } catch (Exception e) {
             updateStatus(" Error en el cálculo.");
+            e.printStackTrace();
         }
+    }
+
+    @FXML
+    private void handleSiguienteAlternativa() {
+        if (listaAlternativas == null || listaAlternativas.isEmpty()) return;
+
+        indiceAlternativaActual++;
+
+        if (indiceAlternativaActual > listaAlternativas.size()) {
+            indiceAlternativaActual = 0;
+        }
+
+        if (indiceAlternativaActual == 0) {
+            dibujarGrafoConCaminoEspecial(rutaPrincipalMemoria.paradas, false);
+
+            lblInfoAlternativa.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+            lblInfoAlternativa.setText("Mostrando: Principal\n" + obtenerTextoCriterio(criterioMemoria, rutaPrincipalMemoria.costoTotal)); // Usa memoria
+
+            btnElegirAlternativa.setDisable(true);
+            updateStatus("Visualizando Ruta Principal");
+        } else {
+            CalculadoraRutas.ResultadoCamino alt = listaAlternativas.get(indiceAlternativaActual - 1);
+
+            dibujarGrafoConCaminoEspecial(alt.paradas, true);
+
+            lblInfoAlternativa.setStyle("-fx-text-fill: #e67e22; -fx-font-weight: bold;");
+            lblInfoAlternativa.setText("Alternativa " + indiceAlternativaActual + " de " + listaAlternativas.size() +
+                    "\n" + obtenerTextoCriterio(criterioMemoria, alt.costoTotal)); // Usa memoria
+
+            btnElegirAlternativa.setDisable(false);
+            updateStatus("Visualizando Alternativa " + indiceAlternativaActual);
+        }
+    }
+
+    private void actualizarLabelAlternativa() {
+        CalculadoraRutas.ResultadoCamino alt = listaAlternativas.get(indiceAlternativaActual - 1);
+        lblInfoAlternativa.setStyle("-fx-text-fill: #e67e22; -fx-font-weight: bold;");
+        lblInfoAlternativa.setText("Alternativa " + indiceAlternativaActual + " de " + listaAlternativas.size() +
+                "\nCosto/Tiempo: " + String.format("%.2f", alt.costoTotal));
+    }
+
+    @FXML
+    private void handleElegirAlternativa() {
+        // Protección anti-crashes
+        if (indiceAlternativaActual == 0 || listaAlternativas == null || listaAlternativas.isEmpty()) return;
+
+        // Fijamos la alternativa como ruta final (memoria principal)
+        rutaPrincipalMemoria = listaAlternativas.get(indiceAlternativaActual - 1);
+
+        // La dibujamos de color verde sólido (false = sin puntos)
+        dibujarGrafoConCaminoEspecial(rutaPrincipalMemoria.paradas, false);
+        lblInfoAlternativa.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+        lblInfoAlternativa.setText("¡Ruta Fijada con Éxito!\n" + obtenerTextoCriterio(criterioMemoria, rutaPrincipalMemoria.costoTotal));
+
+        btnElegirAlternativa.setDisable(true);
+        updateStatus(" ¡Has fijado una ruta alternativa como tu camino final!");
+    }
+
+    private void dibujarGrafoConCaminoEspecial(List<String> camino, boolean esAlternativa) {
+        dibujarGrafoVisual(); // Limpia base
+        Color colorCamino = esAlternativa ? Color.web("#e67e22") : Color.web("#27ae60");
+
+        Map<String, Parada> paradas = sistemaInfo.getParadas();
+        for (int i = 0; i < camino.size() - 1; i++) {
+            Parada p1 = paradas.get(camino.get(i));
+            Parada p2 = paradas.get(camino.get(i + 1));
+            if (p1 != null && p2 != null) {
+                crearFlecha(p1, p2, colorCamino, 6.0, 1.0, esAlternativa);
+            }
+        }
+    }
+
+    private String obtenerTextoCriterio(CriterioPesos criterio, double valor) {
+        return switch (criterio) {
+            case TIEMPO -> "Tiempo: " + valor + " mins.";
+            case COSTO -> "Costo: $" + valor;
+            case DISTANCIA -> "Distancia: " + String.format("%.2f", valor) + " Km.";
+            case TRANSBORDOS -> "Transbordos: " + (int) valor;
+        };
     }
 
     private void handleRegistrarAdmin() {
