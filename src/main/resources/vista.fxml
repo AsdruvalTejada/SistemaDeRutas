@@ -53,8 +53,6 @@
                      </content>
                   </Tab>
 
-
-
                   <Tab fx:id="tabConexiones" text="Conexiones">
                      <content>
                         <VBox spacing="12.0" style="-fx-padding: 20 0 0 0;">
@@ -87,6 +85,16 @@
                               <ComboBox fx:id="comboCalcDestino" maxWidth="Infinity" promptText="Punto de Llegada" />
                               <ComboBox fx:id="comboCriterio" maxWidth="Infinity" promptText="Criterio" />
                               <Button fx:id="btnCalcular" maxWidth="Infinity" text="Calcular Mejor Ruta" />
+
+                              <VBox fx:id="panelAlternativa" spacing="8.0" visible="false" managed="false" style="-fx-background-color: #f1f2f6; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #dcdde1; -fx-border-radius: 5;">
+                                 <Label fx:id="lblInfoAlternativa" style="-fx-text-fill: #e67e22; -fx-font-weight: bold;" text="Alternativa 1 de 3 | Costo: 0" wrapText="true"/>
+                                 <HBox spacing="10.0">
+                                    <Button fx:id="btnSiguienteAlternativa" text="Siguiente Opción ➔" HBox.hgrow="ALWAYS" maxWidth="Infinity" style="-fx-background-color: #e67e22; -fx-text-fill: white;" />
+                                    <Button fx:id="btnElegirAlternativa" text="Fijar esta ruta ✔" HBox.hgrow="ALWAYS" maxWidth="Infinity" style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
+                                 </HBox>
+                                 <Button fx:id="btnVerTablaRutas" text="Ver Tabla Comparativa" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-border-color: #7f8fa6; -fx-border-radius: 5;"/>
+                              </VBox>
+
                            </children>
                         </VBox>
                      </content>

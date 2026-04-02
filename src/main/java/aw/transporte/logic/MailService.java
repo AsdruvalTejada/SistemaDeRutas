@@ -7,7 +7,6 @@ import java.util.Random;
 
 public class MailService {
 
-    // RECUERDA PONER TU CORREO REAL Y TU CONTRASEÑA DE APLICACIÓN AQUÍ
     private static final String REMITENTE = "wilmaryhdez2006@gmail.com";
     private static final String PASSWORD = "rnrq hama gvel tnoh";
 
