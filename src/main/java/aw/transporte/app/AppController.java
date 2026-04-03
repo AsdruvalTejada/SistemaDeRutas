@@ -832,8 +832,12 @@ public class AppController {
 
             javafx.stage.Stage stage = new javafx.stage.Stage();
             stage.setTitle("Inicio de Sesión - Sistema de Rutas");
-            stage.setScene(new javafx.scene.Scene(root, 350, 450));
+
+            javafx.scene.Scene scene = new javafx.scene.Scene(root);
+            stage.setScene(scene);
+
             stage.setResizable(false);
+            stage.sizeToScene();
             stage.show();
 
             // Cierra la ventana principal gigante
