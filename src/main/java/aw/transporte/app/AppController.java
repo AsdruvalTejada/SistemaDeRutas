@@ -419,6 +419,11 @@ public class AppController {
                 return;
             }
 
+            if (origen.getId().equals(destino.getId())) {
+                updateStatus("Error: El punto de origen y destino no pueden ser el mismo.");
+                return;
+            }
+
             criterioMemoria = criterio; // <-- GUARDAMOS EL CRITERIO EN MEMORIA
             CalculadoraRutas motor = new CalculadoraRutas();
             rutaPrincipalMemoria = motor.calcularRutaIdeal(sistemaInfo, origen.getId(), destino.getId(), criterio);
