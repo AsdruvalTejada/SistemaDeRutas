@@ -82,23 +82,39 @@ public class AppController {
 
     /**
      * Función: initialize
-     * Objetivo: Método ejecutado automáticamente por JavaFX al cargar la vista. Inicializa las
-     * bases de datos (JsonGestor), configura los eventos del ratón en el mapa (clics, arrastre)
-     * y enlaza los botones con sus respectivas acciones.
+     * Objetivo: Método principal del ciclo de vida de JavaFX. Se ejecuta automáticamente
+     * justo después de que el archivo FXML ha sido cargado. Su propósito es preparar el
+     * estado inicial de la aplicación, lo que incluye:
+     * 1. Conectar y cargar la base de datos (JsonGestor).
+     * 2. Configurar el diseño visual inicial (cargar fondo del mapa, inicializar ComboBoxes).
+     * 3. Configurar los eventos de ratón (Drag & Drop del panel flotante, clics en el lienzo).
+     * 4. Enlazar (bind) cada botón de la interfaz con su respectiva función lógica.
+     * 5. Renderizar el grafo visual por primera vez en pantalla.
      */
+    @FXML
     public void initialize() {
+        // Inicialización de la base de datos
         dbGestor = new JsonGestor();
         sistemaInfo = dbGestor.fetchGrafoData();
 
+        // Configuración del fondo del mapa
         try {
             String imagePath = getClass().getResource("/mapa_fondo.png").toExternalForm();
             anchorMapa.setStyle(
                     "-fx-background-image: url('" + imagePath + "'); " + "-fx-background-size: cover; " + "-fx-background-position: center; " + "-fx-opacity: 0.9; " + "-fx-background-color: #ffffff;"
             );
-        } catch (Exception e) { System.out.println("No se encontró la imagen."); }
+        } catch (Exception e) {
+            updateStatus("Advertencia: Imagen de fondo no cargada.");
+        }
 
-        if (comboCriterio != null) comboCriterio.setItems(FXCollections.observableArrayList(CriterioPesos.values()));
+        if (comboCriterio != null) {
+            comboCriterio.setItems(FXCollections.observableArrayList(CriterioPesos.values()));
+        }
+        if (comboCriterioMatriz != null) {
+            comboCriterioMatriz.setItems(FXCollections.observableArrayList(CriterioPesos.values()));
+        }
 
+        // Eventos del ratón en el lienzo (Mapa)
         graphPane.setOnMouseClicked(event -> {
             clickX = (event.getX() - 100) / ZOOM;
             clickY = (event.getY() - 100) / ZOOM;
@@ -106,13 +122,13 @@ public class AppController {
             updateStatus("Ubicación marcada.");
         });
 
+        // Configuración del panel flotante
         if (panelFlotante != null) {
-
             // Cambiamos el cursor a una mano abierta para indicar que se puede mover
             panelFlotante.setStyle("-fx-cursor: open-hand;");
+
             panelFlotante.setOnMousePressed(event -> {
                 panelFlotante.setStyle("-fx-cursor: closed-hand;");
-                // Calculamos la diferencia entre el ratón y la posición actual de traslación
                 xOffset = event.getSceneX() - panelFlotante.getTranslateX();
                 yOffset = event.getSceneY() - panelFlotante.getTranslateY();
             });
@@ -127,12 +143,10 @@ public class AppController {
                 panelFlotante.setStyle("-fx-cursor: open-hand;");
             });
         } else {
-            System.out.println("No se puede mover");
-        }
-        if (comboCriterioMatriz != null) {
-            comboCriterioMatriz.setItems(FXCollections.observableArrayList(CriterioPesos.values()));
+            updateStatus("Error interno: Interfaz de panel flotante no encontrada.");
         }
 
+        // Enlace de Botones con Funciones
         btnAgregarParada.setOnAction(e -> handleAgregarParada());
         btnAgregarRuta.setOnAction(e -> handleAgregarRuta());
         btnEliminarRuta.setOnAction(e -> handleEliminarRuta());
@@ -150,6 +164,7 @@ public class AppController {
         btnAuditoriaBFS.setOnAction(e -> handleAuditoriaBFS());
         btnMatrizFloyd.setOnAction(e -> handleMatrizFloyd());
 
+        // Renderizado inicial y aplicación de placeholders a ComboBoxes
         dibujarGrafoVisual();
         actualizarComboBoxesParadas();
         aplicarFijadorDeTexto(comboRutaOrigen, "Seleccione Origen");
@@ -197,13 +212,6 @@ public class AppController {
         txtParadaNombre.clear();
     }
 
-    private void limpiarCamposRutas() {
-        comboRutaOrigen.setValue(null);
-        comboRutaDestino.setValue(null);
-        txtRutaTiempo.clear();
-        txtRutaCosto.clear();
-    }
-
     private void aplicarFijadorDeTexto(ComboBox<Parada> combo, String textoFantasma) {
         combo.setButtonCell(new ListCell<Parada>() {
             @Override
@@ -230,10 +238,6 @@ public class AppController {
                 }
             }
         });
-    }
-
-    private void limpiarCamposViaje() {
-        comboCriterio.setValue(null);
     }
 
     private void handleAgregarParada() {
@@ -1091,19 +1095,6 @@ public class AppController {
         graphPane.getChildren().addAll(l, punta);
     }
 
-    private void dibujarGrafoConCamino(List<String> camino) {
-        dibujarGrafoVisual();
-
-        Map<String, Parada> paradas = sistemaInfo.getParadas();
-        for (int i = 0; i < camino.size() - 1; i++) {
-            Parada p1 = paradas.get(camino.get(i));
-            Parada p2 = paradas.get(camino.get(i + 1));
-
-            if (p1 != null && p2 != null) {
-                crearFlecha(p1, p2, Color.web("#27ae60"), 6.0, 1.0, false);
-            }
-        }
-    }
 
     private void dibujarPuntoTemporal(double x, double y) {
         dibujarGrafoVisual();
