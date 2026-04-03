@@ -10,6 +10,16 @@ public class Ruta {
     private String nombreLinea; // Para los Transbordos
     private Map<CriterioPesos, Double> pesos;
 
+    /**
+     * Función: (Constructor) Ruta -
+     * Objetivo: Crear una conexión entre paradas e inicializar el mapa de pesos.
+     * @param idOrigen    (String) ID del nodo de salida.
+     * @param idDestino   (String) ID del nodo de llegada.
+     * @param nombreLinea (String) Nombre de la línea de transporte (ej. Línea A).
+     * @param tiempo      (double) Tiempo estimado en minutos.
+     * @param distancia   (double) Distancia en kilómetros.
+     * @param costo       (double) Costo del pasaje.
+     */
     public Ruta(String idOrigen, String idDestino, String nombreLinea, double tiempo, double distancia, double costo) {
         this.idOrigen = idOrigen;
         this.idDestino = idDestino;
@@ -26,12 +36,20 @@ public class Ruta {
     public String getNombreLinea() { return nombreLinea; }
     public Map<CriterioPesos, Double> getPesos() { return pesos; }
 
+    /**
+     * Función: getValorPeso -
+     * Objetivo: Obtener el valor numérico de un peso específico según el criterio.
+     * @param criterio (CriterioPesos) El criterio a consultar.
+     * @return         (double) El valor del peso solicitado.
+     */
     public double getValorPeso(CriterioPesos criterio) {
         return pesos.getOrDefault(criterio, 0.0);
     }
 
-    // --- IMPLEMENTACIONES PARA EL HASHSET ---
-    // Dos rutas son iguales si van al mismo destino en la misma línea
+    /**
+     * Función: equals -
+     * Objetivo: Determinar si dos rutas son idénticas (mismo destino y misma línea).
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
