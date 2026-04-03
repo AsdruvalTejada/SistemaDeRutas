@@ -500,13 +500,6 @@ public class AppController {
         }
     }
 
-    private void actualizarLabelAlternativa() {
-        CalculadoraRutas.ResultadoCamino alt = listaAlternativas.get(indiceAlternativaActual - 1);
-        lblInfoAlternativa.setStyle("-fx-text-fill: #e67e22; -fx-font-weight: bold;");
-        lblInfoAlternativa.setText("Alternativa " + indiceAlternativaActual + " de " + listaAlternativas.size() +
-                "\nCosto/Tiempo: " + String.format("%.2f", alt.costoTotal));
-    }
-
     @FXML
     private void handleElegirAlternativa() {
         // Protección anti-crashes

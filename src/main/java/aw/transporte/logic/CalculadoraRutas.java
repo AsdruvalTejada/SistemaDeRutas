@@ -253,34 +253,20 @@ public class CalculadoraRutas {
 
         for (int fila = 0; fila < totalParadas; fila++) {
             Arrays.fill(matrizDistancias[fila], Double.MAX_VALUE);
-            Arrays.fill(matrizSiguientes[fila], -1);
             matrizDistancias[fila][fila] = 0.0;
         }
 
-        for (String idOrigen : grafoActivo.getAdyacencia().keySet()) {
-            int indiceOrigen = paradaIdAIndice.get(idOrigen);
-            for (Ruta rutaActual : grafoActivo.getAdyacencia().get(idOrigen)) {
-                int indiceDestino = paradaIdAIndice.get(rutaActual.getIdDestino());
-                double pesoRuta = (criterioViaje == CriterioPesos.TRANSBORDOS) ? 1.0 : rutaActual.getValorPeso(criterioViaje);
-                if (pesoRuta < matrizDistancias[indiceOrigen][indiceDestino]) {
-                    matrizDistancias[indiceOrigen][indiceDestino] = pesoRuta;
-                    matrizSiguientes[indiceOrigen][indiceDestino] = indiceDestino;
-                }
-            }
-        }
+        // Ejecutamos tu motor perfecto (Dijkstra/Bellman) de todos contra todos
+        for (int i = 0; i < totalParadas; i++) {
+            String origen = indiceAParadaId.get(i);
+            for (int j = 0; j < totalParadas; j++) {
+                if (i == j) continue;
+                String destino = indiceAParadaId.get(j);
 
-        for (int nodoPuente = 0; nodoPuente < totalParadas; nodoPuente++) {
-            for (int nodoOrigen = 0; nodoOrigen < totalParadas; nodoOrigen++) {
-                for (int nodoDestino = 0; nodoDestino < totalParadas; nodoDestino++) {
-                    boolean rutaValida = matrizDistancias[nodoOrigen][nodoPuente] != Double.MAX_VALUE &&
-                            matrizDistancias[nodoPuente][nodoDestino] != Double.MAX_VALUE;
-                    if (rutaValida) {
-                        double nuevaDistanciaCalculada = matrizDistancias[nodoOrigen][nodoPuente] + matrizDistancias[nodoPuente][nodoDestino];
-                        if (nuevaDistanciaCalculada < matrizDistancias[nodoOrigen][nodoDestino]) {
-                            matrizDistancias[nodoOrigen][nodoDestino] = nuevaDistanciaCalculada;
-                            matrizSiguientes[nodoOrigen][nodoDestino] = matrizSiguientes[nodoOrigen][nodoPuente];
-                        }
-                    }
+                // Aprovechamos que tu método ya calcula transbordos y líneas perfecto
+                ResultadoCamino res = calcularRutaIdeal(grafoActivo, origen, destino, criterioViaje);
+                if (res != null) {
+                    matrizDistancias[i][j] = res.costoTotal;
                 }
             }
         }
