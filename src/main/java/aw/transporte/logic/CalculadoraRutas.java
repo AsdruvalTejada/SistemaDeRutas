@@ -28,7 +28,12 @@ public class CalculadoraRutas {
 
     /**
      * Función: calcularRutaIdeal
-     * Objetivo: Punto de entrada que decide qué algoritmo utilizar según el criterio seleccionado.
+     * Objetivo: Punto de entrada principal que decide qué algoritmo utilizar (Dijkstra o Bellman-Ford) según el criterio seleccionado para encontrar la ruta óptima.
+     * @param grafo    (Grafo) El grafo que contiene la red de paradas y rutas.
+     * @param origen   (String) ID del nodo de partida.
+     * @param destino  (String) ID del nodo de llegada.
+     * @param criterio (CriterioPesos) El criterio de evaluación (TIEMPO, DISTANCIA, COSTO, TRANSBORDOS).
+     * @return         (ResultadoCamino) Un objeto con la lista de paradas de la mejor ruta y su costo total.
      */
     public ResultadoCamino calcularRutaIdeal(Grafo grafo, String origen, String destino, CriterioPesos criterio) {
         return switch (criterio) {
@@ -40,7 +45,13 @@ public class CalculadoraRutas {
 
     /**
      * Función: dijkstra
-     * Objetivo: Hallar la ruta más corta. Permite omitir una ruta (rutaBloqueada) para hallar alternativas.
+     * Objetivo: Hallar la ruta más corta o económica desde un origen a un destino. Permite bloquear una ruta específica para forzar la búsqueda de alternativas. Su complejidad es O(E log V).
+     * @param grafo         (Grafo) El sistema de rutas a evaluar.
+     * @param idOrigen      (String) ID de la parada inicial.
+     * @param idDestino     (String) ID de la parada final.
+     * @param criterio      (CriterioPesos) El criterio de peso a minimizar.
+     * @param rutaBloqueada (Ruta) Una ruta específica a ignorar durante el cálculo (útil para el Algoritmo de Yen), o null si es una búsqueda normal.
+     * @return              (ResultadoCamino) La ruta óptima encontrada o null si no hay conexión.
      */
     private ResultadoCamino dijkstra(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio, Ruta rutaBloqueada) {
         Map<String, Double> distancias = new HashMap<>();
@@ -91,7 +102,12 @@ public class CalculadoraRutas {
 
     /**
      * Función: obtenerAlternativas
-     * Objetivo: Retorna una lista ordenada con múltiples rutas alternativas usando Algoritmo de Yen.
+     * Objetivo: Generar una lista ordenada con múltiples rutas alternativas entre dos puntos utilizando el Algoritmo de Yen y bloqueando aristas secuencialmente.
+     * @param grafo    (Grafo) El grafo sobre el cual calcular las alternativas.
+     * @param origen   (String) ID de la parada de inicio.
+     * @param destino  (String) ID de la parada de destino.
+     * @param criterio (CriterioPesos) El criterio para evaluar el peso de las rutas.
+     * @return         (List<ResultadoCamino>) Lista de rutas alternativas ordenadas de mejor a peor según su costo total.
      */
     public List<ResultadoCamino> obtenerAlternativas(Grafo grafo, String origen, String destino, CriterioPesos criterio) {
         List<ResultadoCamino> alternativas = new ArrayList<>();
@@ -127,7 +143,12 @@ public class CalculadoraRutas {
 
     /**
      * Función: bellmanFord
-     * Objetivo: Resolver rutas considerando pesos negativos (descuentos).
+     * Objetivo: Encontrar la ruta óptima permitiendo el procesamiento de pesos negativos (ej. descuentos en costos). Su complejidad es O(V * E).
+     * @param grafo     (Grafo) La La red de paradas y conexiones.
+     * @param idOrigen  (String) ID del nodo de salida.
+     * @param idDestino (String) ID del nodo de llegada.
+     * @param criterio  (CriterioPesos) Criterio de evaluación de la ruta.
+     * @return          (ResultadoCamino) La ruta calculada con su costo, o null si detecta ciclos negativos o no hay camino.
      */
     private ResultadoCamino bellmanFord(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio) {
         Map<String, Double> distancias = new HashMap<>();
@@ -162,13 +183,30 @@ public class CalculadoraRutas {
         for (String u : grafo.getAdyacencia().keySet()) {
             for (Ruta ruta : grafo.getAdyacencia().get(u)) {
                 String v = ruta.getIdDestino();
+                String lineaActual = lineasLlegada.get(u);
+                String lineaSiguiente = ruta.getNombreLinea();
                 double pesoArista = ruta.getValorPeso(criterio);
-                if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista < distancias.get(v)) return null;
+
+                double penalizacion = 0.0;
+                if (lineaActual != null && !lineaActual.equals(lineaSiguiente)) penalizacion = 2.0;
+
+                if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista + penalizacion < distancias.get(v)) {
+                    return null; // Si de verdad entra aquí, hay un ciclo negativo real
+                }
             }
         }
         return reconstruirCamino(predecesores, distancias, idOrigen, idDestino);
     }
 
+    /**
+     * Función: reconstruirCamino
+     * Objetivo: Método auxiliar que traza el camino de vuelta desde el destino hasta el origen usando el mapa de predecesores.
+     * @param predecesores (Map<String, String>) Diccionario que vincula cada nodo con el nodo del que provino.
+     * @param distancias   (Map<String, Double>) Diccionario con los costos acumulados hacia cada parada.
+     * @param idOrigen     (String) ID del nodo donde inició la búsqueda.
+     * @param idDestino    (String) ID del nodo donde finalizó la búsqueda.
+     * @return             (ResultadoCamino) Objeto con la lista de paradas en el orden correcto y el costo total final.
+     */
     private ResultadoCamino reconstruirCamino(Map<String, String> predecesores, Map<String, Double> distancias, String idOrigen, String idDestino) {
         if (!predecesores.containsKey(idDestino) && !idOrigen.equals(idDestino)) return null;
         List<String> caminoFinal = new ArrayList<>();
@@ -198,7 +236,11 @@ public class CalculadoraRutas {
 
     /**
      * Función: calcularRutasGlobales
-     * Objetivo: Calcula la ruta más corta de todos los nodos contra todos los nodos (Floyd-Warshall).
+     * Objetivo: Generar una matriz global con las distancias mínimas de todos los nodos contra todos los nodos
+     * utilizando el algoritmo de Floyd-Warshall. Su complejidad es O(V^3).
+     * @param grafoActivo   (Grafo) El grafo completo a procesar.
+     * @param criterioViaje (CriterioPesos) El criterio para calcular los pesos entre todos los nodos.
+     * @return              (ResultadoMatrizGlobal) Objeto contenedor con la matriz de distancias, la matriz de siguientes pasos y los índices mapeados.
      */
     public ResultadoMatrizGlobal calcularRutasGlobales(Grafo grafoActivo, CriterioPesos criterioViaje) {
         int totalParadas = grafoActivo.getParadas().size();

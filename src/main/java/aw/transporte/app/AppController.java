@@ -79,6 +79,12 @@ public class AppController {
     private static final double ZOOM = 7.0;
     private double clickX, clickY;
 
+    /**
+     * Función: initialize
+     * Objetivo: Método ejecutado automáticamente por JavaFX al cargar la vista. Inicializa las
+     * bases de datos (JsonGestor), configura los eventos del ratón en el mapa (clics, arrastre)
+     * y enlaza los botones con sus respectivas acciones.
+     */
     public void initialize() {
         dbGestor = new JsonGestor();
         sistemaInfo = dbGestor.fetchGrafoData();
@@ -148,6 +154,12 @@ public class AppController {
         aplicarFijadorDeTextoCriterio(comboCriterio, "Criterio de Viaje");
     }
 
+    /**
+     * Función: configurarPermisos
+     * Objetivo: Ajustar dinámicamente la visibilidad de las pestañas y herramientas de la interfaz
+     * según el rol del usuario logueado (Pasajero o Administrador).
+     * @param esAdmin (boolean) True si el usuario tiene privilegios administrativos, false si es solo lectura.
+     */
     public void configurarPermisos(boolean esAdmin) {
         this.usuarioEsAdmin = esAdmin;
         if (!esAdmin) {
@@ -266,6 +278,7 @@ public class AppController {
         comboParadaModificar.getSelectionModel().clearSelection();
         updateStatus(" Parada modificada exitosamente a: " + nuevoNombre);
     }
+
 
     private void handleAgregarRuta() {
         try {
@@ -389,6 +402,11 @@ public class AppController {
         comboNombreLinea.setEditable(true);
     }
 
+    /**
+     * Función: handleCalcularRuta
+     * Objetivo: Capturar los nodos de origen/destino y el criterio seleccionado para solicitar al motor
+     * lógico (CalculadoraRutas) el camino óptimo y sus alternativas. Renderiza el primer resultado en pantalla.
+     */
     @FXML
     private void handleCalcularRuta() {
         try {
@@ -401,7 +419,7 @@ public class AppController {
                 return;
             }
 
-            criterioMemoria = criterio; // <-- 1. GUARDAMOS EL CRITERIO EN MEMORIA
+            criterioMemoria = criterio; // <-- GUARDAMOS EL CRITERIO EN MEMORIA
             CalculadoraRutas motor = new CalculadoraRutas();
             rutaPrincipalMemoria = motor.calcularRutaIdeal(sistemaInfo, origen.getId(), destino.getId(), criterio);
 
@@ -409,20 +427,25 @@ public class AppController {
                 listaAlternativas = motor.obtenerAlternativas(sistemaInfo, origen.getId(), destino.getId(), criterio);
 
                 if (listaAlternativas != null && !listaAlternativas.isEmpty()) {
-                    indiceAlternativaActual = 1;
+                    // Empezamos en el índice 0 (La ruta principal)
+                    indiceAlternativaActual = 0;
                     panelAlternativa.setVisible(true);
                     panelAlternativa.setManaged(true);
 
-                    CalculadoraRutas.ResultadoCamino alt1 = listaAlternativas.get(0);
-                    lblInfoAlternativa.setStyle("-fx-text-fill: #e67e22; -fx-font-weight: bold;");
-                    lblInfoAlternativa.setText("Alternativa 1 de " + listaAlternativas.size() +
-                            "\n" + obtenerTextoCriterio(criterioMemoria, alt1.costoTotal)); // Usa memoria
+                    // Mostramos la información de la ruta PRINCIPAL en letras verdes
+                    lblInfoAlternativa.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+                    lblInfoAlternativa.setText("Mostrando: Principal\n" + obtenerTextoCriterio(criterioMemoria, rutaPrincipalMemoria.costoTotal));
 
-                    dibujarGrafoConCaminoEspecial(alt1.paradas, true);
-                    btnElegirAlternativa.setDisable(false);
+                    // Dibujamos la ruta PRINCIPAL en verde (false = sin puntos naranjas)
+                    dibujarGrafoConCaminoEspecial(rutaPrincipalMemoria.paradas, false);
+
+                    // Apagamos el botón de fijar porque ya estamos viendo la principal
+                    btnElegirAlternativa.setDisable(true);
+
                     updateStatus("Ruta Principal: " + obtenerTextoCriterio(criterioMemoria, rutaPrincipalMemoria.costoTotal));
 
                 } else {
+                    // Si no hay alternativas, solo dibujamos la principal y ocultamos el panel
                     dibujarGrafoConCaminoEspecial(rutaPrincipalMemoria.paradas, false);
                     panelAlternativa.setVisible(false);
                     panelAlternativa.setManaged(false);
@@ -484,10 +507,16 @@ public class AppController {
         // Protección anti-crashes
         if (indiceAlternativaActual == 0 || listaAlternativas == null || listaAlternativas.isEmpty()) return;
 
-        // Fijamos la alternativa como ruta final (memoria principal)
+        // 1. Guardamos la ruta principal antigua temporalmente
+        CalculadoraRutas.ResultadoCamino rutaVieja = rutaPrincipalMemoria;
+
+        // 2. Fijamos la alternativa elegida como la nueva principal
         rutaPrincipalMemoria = listaAlternativas.get(indiceAlternativaActual - 1);
 
-        // La dibujamos de color verde sólido (false = sin puntos)
+        // 3. ¡EL TRUCO (SWAP)! Metemos la ruta vieja en el lugar de la alternativa que acabamos de sacar
+        listaAlternativas.set(indiceAlternativaActual - 1, rutaVieja);
+
+        // 4. La dibujamos de color verde sólido (false = sin puntos)
         dibujarGrafoConCaminoEspecial(rutaPrincipalMemoria.paradas, false);
         lblInfoAlternativa.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
         lblInfoAlternativa.setText("¡Ruta Fijada con Éxito!\n" + obtenerTextoCriterio(criterioMemoria, rutaPrincipalMemoria.costoTotal));
@@ -496,6 +525,11 @@ public class AppController {
         updateStatus(" ¡Has fijado una ruta alternativa como tu camino final!");
     }
 
+    /**
+     * Función: handleVerTablaRutas
+     * Objetivo: Generar y desplegar una ventana emergente (Stage) con una tabla interactiva (TableView)
+     * que compara detalladamente la ruta principal y las alternativas (Algoritmo de Yen). Permite fijar una ruta.
+     */
     @FXML
     private void handleVerTablaRutas() {
         if (rutaPrincipalMemoria == null) {
@@ -557,7 +591,10 @@ public class AppController {
             if (filaElegida != null) {
                 // Si el ID es mayor a 0, significa que eligió una alternativa
                 if (filaElegida.id() > 0) {
+                    // --- ¡AQUÍ ESTÁ EL TRUCO (SWAP)! ---
+                    CalculadoraRutas.ResultadoCamino rutaVieja = rutaPrincipalMemoria;
                     rutaPrincipalMemoria = listaAlternativas.get(filaElegida.id() - 1);
+                    listaAlternativas.set(filaElegida.id() - 1, rutaVieja);
                 }
 
                 // 1. Dibujamos en verde la ruta seleccionada en el mapa grande
@@ -594,6 +631,11 @@ public class AppController {
         stageTabla.show();
     }
 
+    /**
+     * Función: handleAuditoriaBFS
+     * Objetivo: Ejecutar el algoritmo de búsqueda en anchura (BFS) desde un nodo aleatorio para detectar
+     * paradas huérfanas o desconectadas en el sistema, y mostrar el diagnóstico en un cuadro de alerta.
+     */
     @FXML
     private void handleAuditoriaBFS() {
         if (sistemaInfo.getParadas().isEmpty()) {
@@ -628,6 +670,11 @@ public class AppController {
         alerta.showAndWait();
     }
 
+    /**
+     * Función: handleMatrizFloyd
+     * Objetivo: Invocar el algoritmo de Floyd-Warshall para calcular las distancias mínimas globales de
+     * todos contra todos, y renderizar el resultado construyendo columnas dinámicamente en una tabla JavaFX.
+     */
     @FXML
     private void handleMatrizFloyd() {
         if (sistemaInfo.getParadas().isEmpty()) return;
@@ -849,6 +896,11 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: dibujarGrafoVisual
+     * Objetivo: Renderizar en el lienzo de la interfaz (graphPane) todas las paradas (nodos circulares)
+     * y sus conexiones (aristas) almacenadas en la estructura de datos del Grafo actual.
+     */
     private void dibujarGrafoVisual() {
         if (graphPane == null) return;
         graphPane.getChildren().clear();
@@ -980,6 +1032,16 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: crearFlecha
+     * Objetivo: Dibujar un vector direccional (línea con punta de flecha) entre dos nodos en el mapa.
+     * @param origen        (Parada) Nodo geométrico de salida.
+     * @param destino       (Parada) Nodo geométrico de llegada.
+     * @param color         (Color) Color de la arista según el estado (verde = óptima, naranja = alternativa).
+     * @param grosor        (double) Ancho del trazo de la línea.
+     * @param opacidad      (double) Nivel de transparencia de la conexión.
+     * @param esAlternativa (boolean) Si es true, el trazo de la línea se renderiza de forma punteada.
+     */
     private void crearFlecha(Parada origen, Parada destino, Color color, double grosor, double opacidad, boolean esAlternativa) {
         double x1 = origen.getCoorx() * ZOOM + 100;
         double y1 = origen.getCoory() * ZOOM + 100;
@@ -1040,5 +1102,11 @@ public class AppController {
     }
 
     private void updateStatus(String msg) { if (lblEstado != null) lblEstado.setText(msg); }// Molde de datos para la Tabla Comparativa (Ahora con ID secreto)
+
+    /**
+     * Record: FilaRuta
+     * Objetivo: Estructura de datos inmutable (Molde) utilizada para rellenar las celdas de la
+     * Tabla Comparativa de Rutas. Incluye un ID secreto para vinculación interna.
+     */
     public record FilaRuta(int id, String opcion, String camino, String valor) {}
 }

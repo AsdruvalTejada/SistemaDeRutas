@@ -9,6 +9,14 @@ public class Parada {
     private double coorx;
     private double coory;
 
+    /**
+     * Función: (Constructor) Parada
+     * Objetivo: Inicializar una nueva parada con sus datos básicos.
+     * @param id     (String) Identificador único (ej. P1).
+     * @param nombre (String) Nombre legible de la parada.
+     * @param x      (double) Posición horizontal en el plano.
+     * @param y      (double) Posición vertical en el plano.
+     */
     public Parada(String id, String nombre, double x, double y) {
         this.id = id;
         this.nombre = nombre;
@@ -54,6 +62,10 @@ public class Parada {
         return nombre + " (" + id + ")";
     }
 
+    /**
+     * Función: equals
+     * Objetivo: Comparar si dos objetos Parada son iguales basándose en su ID único.
+     */
     // Para comparar dos paradas a ver si son las mismas usando su ID
     @Override
     public boolean equals(Object o) {
