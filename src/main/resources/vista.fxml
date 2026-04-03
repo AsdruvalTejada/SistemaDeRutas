@@ -105,14 +105,20 @@
                   <content>
                      <VBox spacing="15.0" style="-fx-padding: 20;">
                         <children>
-                           <Label style="-fx-text-fill: #57606f; -fx-font-weight: bold; -fx-font-size: 14px;" text="Herramientas de Administrador" />
-
                            <Label style="-fx-text-fill: #747d8c;" text="Auditoría de Red (BFS): Escanea todo el sistema en busca de paradas que hayan quedado desconectadas o inaccesibles." wrapText="true" />
-                           <Button fx:id="btnAuditoriaBFS" maxWidth="Infinity" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" text=" Ejecutar Auditoría de Conectividad" />
+                           <Button fx:id="btnAuditoriaBFS" maxWidth="Infinity" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" text="🔍 Ejecutar Auditoría de Conectividad" />
 
                            <Separator style="-fx-padding: 10 0;" />
 
-                           <Label style="-fx-text-fill: #747d8c;" text="Matriz de Costos (Floyd-Warshall): Genera una tabla global con la mejor ruta posible de todas las paradas contra todas las paradas." wrapText="true" />
+                           <Label style="-fx-text-fill: #747d8c;" text="Matriz de Costos Global: Genera una tabla con la mejor ruta posible de todas las paradas contra todas las paradas." wrapText="true" />
+
+                           <HBox alignment="CENTER_LEFT" spacing="10.0">
+                              <children>
+                                 <Label text="Criterio a evaluar:" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+                                 <ComboBox fx:id="comboCriterioMatriz" prefWidth="170.0" promptText="Elija un criterio..." />
+                              </children>
+                           </HBox>
+
                            <Button fx:id="btnMatrizFloyd" maxWidth="Infinity" style="-fx-background-color: #8e44ad; -fx-text-fill: white;" text=" Generar Matriz Global (Todas vs Todas)" />
                         </children>
                      </VBox>

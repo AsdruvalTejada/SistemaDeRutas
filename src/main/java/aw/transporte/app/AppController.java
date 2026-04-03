@@ -64,6 +64,7 @@ public class AppController {
     @FXML private Tab tabDiagnostico;
     @FXML private Button btnAuditoriaBFS;
     @FXML private Button btnMatrizFloyd;
+    @FXML private ComboBox<CriterioPesos> comboCriterioMatriz;
 
     private CalculadoraRutas.ResultadoCamino rutaPrincipalMemoria;
     private List<CalculadoraRutas.ResultadoCamino> listaAlternativas;
@@ -128,6 +129,10 @@ public class AppController {
         } else {
             System.out.println("No se puede mover");
         }
+        if (comboCriterioMatriz != null) {
+            comboCriterioMatriz.setItems(FXCollections.observableArrayList(CriterioPesos.values()));
+        }
+
         btnAgregarParada.setOnAction(e -> handleAgregarParada());
         btnAgregarRuta.setOnAction(e -> handleAgregarRuta());
         btnEliminarRuta.setOnAction(e -> handleEliminarRuta());
@@ -673,18 +678,25 @@ public class AppController {
      * Objetivo: Invocar el algoritmo de Floyd-Warshall para calcular las distancias mínimas globales de
      * todos contra todos, y renderizar el resultado construyendo columnas dinámicamente en una tabla JavaFX.
      */
+
     @FXML
     private void handleMatrizFloyd() {
         if (sistemaInfo.getParadas().isEmpty()) return;
-
-        // Por defecto usamos el criterio del ComboBox, si está vacío usamos TIEMPO
-        CriterioPesos criterio = comboCriterio.getValue() != null ? comboCriterio.getValue() : CriterioPesos.TIEMPO;
+        CriterioPesos criterio = comboCriterioMatriz.getValue();
+        if (criterio == null) {
+            javafx.scene.control.Alert alerta = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.WARNING);
+            alerta.setTitle("Acción Requerida");
+            alerta.setHeaderText(null);
+            alerta.setContentText("️ Por favor, seleccione un criterio (Tiempo, Costo, etc.) en el menú desplegable antes de generar la matriz global.");
+            alerta.showAndWait();
+            return; // Detenemos la ejecución aquí si no hay criterio seleccionado
+        }
 
         CalculadoraRutas motor = new CalculadoraRutas();
         CalculadoraRutas.ResultadoMatrizGlobal resultadoGlobal = motor.calcularRutasGlobales(sistemaInfo, criterio);
 
         javafx.stage.Stage stageMatriz = new javafx.stage.Stage();
-        stageMatriz.setTitle("Matriz Global de Distancias (Floyd-Warshall) - Criterio: " + criterio);
+        stageMatriz.setTitle("Matriz Global de Rutas - Criterio: " + criterio);
 
         TableView<String[]> tabla = new TableView<>();
 
