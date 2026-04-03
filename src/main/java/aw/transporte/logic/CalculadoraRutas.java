@@ -236,11 +236,13 @@ public class CalculadoraRutas {
 
     /**
      * Función: calcularRutasGlobales
-     * Objetivo: Generar una matriz global con las distancias mínimas de todos los nodos contra todos los nodos
-     * utilizando el algoritmo de Floyd-Warshall. Su complejidad es O(V^3).
+     * Objetivo: Generar una matriz global con las distancias y costos mínimos de todos los nodos contra todos los nodos.
+     * En lugar de usar Floyd-Warshall estándar, implementa un enfoque APSP (All-Pairs Shortest Path) ejecutando
+     * el motor principal (Dijkstra/Bellman-Ford) iterativamente. Esto garantiza que el historial de rutas se mantenga
+     * y las penalizaciones por transbordos de líneas se calculen con exactitud matemática. Su complejidad es O(V^2 * E log V).
      * @param grafoActivo   (Grafo) El grafo completo a procesar.
-     * @param criterioViaje (CriterioPesos) El criterio para calcular los pesos entre todos los nodos.
-     * @return              (ResultadoMatrizGlobal) Objeto contenedor con la matriz de distancias, la matriz de siguientes pasos y los índices mapeados.
+     * @param criterioViaje (CriterioPesos) El criterio para calcular los pesos entre todos los nodos (ej. Costo, Tiempo).
+     * @return              (ResultadoMatrizGlobal) Objeto contenedor con la matriz de distancias y los índices mapeados.
      */
     public ResultadoMatrizGlobal calcularRutasGlobales(Grafo grafoActivo, CriterioPesos criterioViaje) {
         int totalParadas = grafoActivo.getParadas().size();
