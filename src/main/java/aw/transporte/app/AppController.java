@@ -84,12 +84,7 @@ public class AppController {
      * Función: initialize
      * Objetivo: Método principal del ciclo de vida de JavaFX. Se ejecuta automáticamente
      * justo después de que el archivo FXML ha sido cargado. Su propósito es preparar el
-     * estado inicial de la aplicación, lo que incluye:
-     * 1. Conectar y cargar la base de datos (JsonGestor).
-     * 2. Configurar el diseño visual inicial (cargar fondo del mapa, inicializar ComboBoxes).
-     * 3. Configurar los eventos de ratón (Drag & Drop del panel flotante, clics en el lienzo).
-     * 4. Enlazar (bind) cada botón de la interfaz con su respectiva función lógica.
-     * 5. Renderizar el grafo visual por primera vez en pantalla.
+     * estado inicial de la aplicación.
      */
     @FXML
     public void initialize() {
@@ -178,7 +173,7 @@ public class AppController {
      * Función: configurarPermisos
      * Objetivo: Ajustar dinámicamente la visibilidad de las pestañas y herramientas de la interfaz
      * según el rol del usuario logueado (Pasajero o Administrador).
-     * @param esAdmin (boolean) True si el usuario tiene privilegios administrativos, false si es solo lectura.
+     * @param esAdmin (boolean) True si el usuario tiene privilegios administrativos.
      */
     public void configurarPermisos(boolean esAdmin) {
         this.usuarioEsAdmin = esAdmin;
@@ -196,6 +191,11 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: actualizarComboBoxesParadas
+     * Objetivo: Refrescar todos los menús desplegables de paradas en la interfaz, cargándolos
+     * con los datos más recientes del grafo y ordenándolos alfabéticamente por nombre.
+     */
     private void actualizarComboBoxesParadas() {
         List<Parada> listaParadas = new ArrayList<>(sistemaInfo.getParadas().values());
         listaParadas.sort(Comparator.comparing(Parada::getNombre));
@@ -208,10 +208,20 @@ public class AppController {
         comboParadaModificar.getItems().setAll(sistemaInfo.getParadas().values());
     }
 
+    /**
+     * Función: limpiarCamposParadas
+     * Objetivo: Borrar el contenido del campo de texto utilizado para nombrar nuevas paradas.
+     */
     private void limpiarCamposParadas() {
         txtParadaNombre.clear();
     }
 
+    /**
+     * Función: aplicarFijadorDeTexto
+     * Objetivo: Inyectar un texto por defecto (placeholder) en un ComboBox de Paradas cuando no hay ninguna selección activa.
+     * @param combo         (ComboBox<Parada>) El elemento UI a modificar.
+     * @param textoFantasma (String) El texto indicativo a mostrar (ej. "Seleccione Origen").
+     */
     private void aplicarFijadorDeTexto(ComboBox<Parada> combo, String textoFantasma) {
         combo.setButtonCell(new ListCell<Parada>() {
             @Override
@@ -226,6 +236,12 @@ public class AppController {
         });
     }
 
+    /**
+     * Función: aplicarFijadorDeTextoCriterio
+     * Objetivo: Inyectar un texto por defecto en el ComboBox de Criterios (Tiempo, Costo, etc.).
+     * @param combo         (ComboBox<CriterioPesos>) El elemento UI a modificar.
+     * @param textoFantasma (String) El texto indicativo a mostrar.
+     */
     private void aplicarFijadorDeTextoCriterio(ComboBox<CriterioPesos> combo, String textoFantasma) {
         combo.setButtonCell(new ListCell<CriterioPesos>() {
             @Override
@@ -240,6 +256,11 @@ public class AppController {
         });
     }
 
+    /**
+     * Función: handleAgregarParada
+     * Objetivo: Crear una nueva entidad 'Parada' en la estructura del Grafo utilizando
+     * las coordenadas del último clic en el mapa y guardarla en la base de datos JSON.
+     */
     private void handleAgregarParada() {
         String nombreParada = txtParadaNombre.getText().trim();
 
@@ -264,6 +285,10 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: handleModificarParada
+     * Objetivo: Actualizar el nombre de una parada existente y persistir el cambio en disco.
+     */
     private void handleModificarParada() {
         Parada paradaSeleccionada = comboParadaModificar.getValue();
         String nuevoNombre = txtNuevoNombreParada.getText().trim();
@@ -288,7 +313,51 @@ public class AppController {
         updateStatus(" Parada modificada exitosamente a: " + nuevoNombre);
     }
 
+    /**
+     * Función: validContinuidad
+     * Objetivo: Asegurar que los nuevos tramos de una línea existente se conecten a ella físicamente,
+     * evitando la creación de "islas" desconectadas en el sistema de transporte.
+     * @param idOrigen    (String) ID del nodo de inicio propuesto.
+     * @param idDestino   (String) ID del nodo de destino propuesto.
+     * @param nombreLinea (String) Nombre de la línea a evaluar.
+     * @return            (boolean) True si la conexión es legal, False si rompe la topología de red.
+     */
+    private boolean validContinuidad(String idOrigen, String idDestino, String nombreLinea) {
+        if (sistemaInfo == null || sistemaInfo.getAdyacencia() == null) return true;
 
+        boolean existeEnSistema = false;
+        boolean origenConectado = false;
+        boolean destinoConectado = false;
+
+        // Recorremos todo el grafo buscando si la línea ya existe
+        for (Map.Entry<String, Set<Ruta>> entry : sistemaInfo.getAdyacencia().entrySet()) {
+            String nodoActual = entry.getKey();
+
+            for (Ruta ruta : entry.getValue()) {
+                // Comparamos ignorando mayúsculas y espacios extra
+                if (ruta.getNombreLinea().trim().equalsIgnoreCase(nombreLinea.trim())) {
+                    existeEnSistema = true; // ¡La línea ya existe en el mapa!
+
+                    // Verificamos si este tramo toca el origen o destino que intentamos conectar
+                    if (nodoActual.equals(idOrigen) || ruta.getIdDestino().equals(idOrigen)) {
+                        origenConectado = true;
+                    }
+                    if (nodoActual.equals(idDestino) || ruta.getIdDestino().equals(idDestino)) {
+                        destinoConectado = true;
+                    }
+                }
+            }
+        }
+
+        // Regla: Si no existe, se permite (nueva línea). Si existe, el origen o el destino deben tocarla.
+        return !existeEnSistema || origenConectado || destinoConectado;
+    }
+
+    /**
+     * Función: handleAgregarRuta
+     * Objetivo: Capturar datos de la UI para crear una nueva arista dirigida (conexión) entre dos paradas.
+     * Calcula la distancia Euclidiana, valida la regla de continuidad de línea y guarda en JSON.
+     */
     private void handleAgregarRuta() {
         try {
             Parada origen = comboRutaOrigen.getValue();
@@ -322,6 +391,18 @@ public class AppController {
                 return;
             }
 
+            // --- NUEVA VALIDACIÓN DE CONTINUIDAD (EL ESCUDO) ---
+            if (!validContinuidad(origen.getId(), destino.getId(), nombreLinea)) {
+                Alert alerta = new Alert(Alert.AlertType.ERROR);
+                alerta.setTitle("Error de Continuidad de Red");
+                alerta.setHeaderText(" Fragmentación de Línea Detectada");
+                alerta.setContentText("La '" + nombreLinea + "' ya existe en otra parte del mapa. No puedes crear un tramo aislado.\n\nPor favor, conéctalo a un nodo de la línea existente o utiliza un nombre diferente para esta nueva ruta.");
+                alerta.showAndWait();
+                updateStatus(" Conexión cancelada: Violación de continuidad.");
+                return; // Detenemos la creación
+            }
+            // ---------------------------------------------------
+
             boolean conectada = sistemaInfo.agregarRuta(origen, destino, nombreLinea, tiempo, costo, distanciaKm);
 
             if (conectada) {
@@ -342,6 +423,11 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: handleEliminarRuta
+     * Objetivo: Eliminar la conexión directa (arista) entre un origen y un destino seleccionados,
+     * actualizando inmediatamente la vista y la base de datos.
+     */
     private void handleEliminarRuta() {
         Parada origen = comboRutaOrigen.getValue();
         Parada destino = comboRutaDestino.getValue();
@@ -360,6 +446,11 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: handleModificarRuta
+     * Objetivo: Actualizar los pesos (tiempo y costo) de una arista ya existente sin alterar
+     * su geometría o nombre de línea. Persiste los datos en el archivo JSON.
+     */
     private void handleModificarRuta() {
         Parada origen = comboRutaOrigen.getValue();
         Parada destino = comboRutaDestino.getValue();
@@ -397,6 +488,11 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: actualizarComboBoxLineas
+     * Objetivo: Barrer el grafo en busca de todos los nombres de líneas únicos (HashSet)
+     * para mantener el menú desplegable de "Conexiones" siempre actualizado.
+     */
     private void actualizarComboBoxLineas() {
         if (comboNombreLinea == null) return;
 
@@ -477,6 +573,11 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: handleSiguienteAlternativa
+     * Objetivo: Ciclar a través de la lista de rutas alternativas (generadas por el Alg. de Yen)
+     * en la interfaz, actualizando el mapa con trazos punteados (color naranja) de forma dinámica.
+     */
     @FXML
     private void handleSiguienteAlternativa() {
         if (listaAlternativas == null || listaAlternativas.isEmpty()) return;
@@ -509,6 +610,11 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: handleElegirAlternativa
+     * Objetivo: Sobrescribir la ruta principal actual con la alternativa visualizada en ese momento
+     * (realizando un swap en las variables de memoria), para confirmarla como el plan de viaje oficial.
+     */
     @FXML
     private void handleElegirAlternativa() {
         // Protección anti-crashes
@@ -682,7 +788,6 @@ public class AppController {
      * Objetivo: Invocar el algoritmo de Floyd-Warshall para calcular las distancias mínimas globales de
      * todos contra todos, y renderizar el resultado construyendo columnas dinámicamente en una tabla JavaFX.
      */
-
     @FXML
     private void handleMatrizFloyd() {
         if (sistemaInfo.getParadas().isEmpty()) return;
@@ -748,6 +853,12 @@ public class AppController {
         stageMatriz.show();
     }
 
+    /**
+     * Función: dibujarGrafoConCaminoEspecial
+     * Objetivo: Limpiar el lienzo y redibujar solo una ruta específica (camino) destacada visualmente.
+     * @param camino        (List<String>) Secuencia de IDs de paradas a resaltar.
+     * @param esAlternativa (boolean) Dictamina el color y estilo (true = naranja punteado, false = verde sólido).
+     */
     private void dibujarGrafoConCaminoEspecial(List<String> camino, boolean esAlternativa) {
         dibujarGrafoVisual(); // Limpia base
         Color colorCamino = esAlternativa ? Color.web("#e67e22") : Color.web("#27ae60");
@@ -762,6 +873,14 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: obtenerTextoCriterio
+     * Objetivo: Formatear matemáticamente y agregar sufijos al valor numérico resultante
+     * de una búsqueda, basándose en la unidad de medida del criterio actual.
+     * @param criterio (CriterioPesos) El contexto del valor (ej. COSTO, TIEMPO).
+     * @param valor    (double) El número bruto a formatear.
+     * @return         (String) Cadena amigable para el usuario (ej. "Costo: $5.0").
+     */
     private String obtenerTextoCriterio(CriterioPesos criterio, double valor) {
         return switch (criterio) {
             case TIEMPO -> "Tiempo: " + valor + " mins.";
@@ -771,6 +890,11 @@ public class AppController {
         };
     }
 
+    /**
+     * Función: handleRegistrarAdmin
+     * Objetivo: Capturar los datos de la pestaña de Usuarios para registrar un nuevo perfil
+     * administrativo (impidiendo duplicados) y persistirlo usando el GestorUsuarios.
+     */
     private void handleRegistrarAdmin() {
         String user = txtNuevoAdminUser.getText().trim();
         String clave = txtNuevoAdminClave.getText().trim();
@@ -801,7 +925,11 @@ public class AppController {
         txtNuevoAdminUser.clear(); txtNuevoAdminClave.clear(); txtNuevoAdminCorreo.clear();
     }
 
-    // Actualiza el ComboBox cada vez que hacemos un cambio
+    /**
+     * Función: actualizarComboUsuarios
+     * Objetivo: Volver a cargar la lista de administradores desde el archivo JSON al ComboBox
+     * para reflejar cambios (nuevos registros o eliminaciones) de forma instantánea en la UI.
+     */
     public void actualizarComboUsuarios() {
         if (comboUsuariosAdmin == null) return;
         comboUsuariosAdmin.getItems().clear();
@@ -812,7 +940,11 @@ public class AppController {
         }
     }
 
-    // Llena los campos de texto cuando seleccionas un usuario en el ComboBox
+    /**
+     * Función: cargarDatosEnCampos
+     * Objetivo: Autocompletar los campos de texto (Usuario, Clave, Correo) de la sección "Modificar/Eliminar"
+     * cuando el administrador selecciona un nombre del menú desplegable.
+     */
     private void cargarDatosEnCampos() {
         String usuarioSeleccionado = comboUsuariosAdmin.getValue();
         if (usuarioSeleccionado == null) return;
@@ -830,6 +962,11 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: handleModificarAdmin
+     * Objetivo: Aplicar y guardar los cambios realizados sobre un perfil de administrador
+     * existente tras seleccionarlo en la interfaz.
+     */
     private void handleModificarAdmin() {
         String originalUser = comboUsuariosAdmin.getValue();
         if (originalUser == null) {
@@ -862,6 +999,11 @@ public class AppController {
         actualizarComboUsuarios();
     }
 
+    /**
+     * Función: handleEliminarAdmin
+     * Objetivo: Borrar el perfil de un administrador seleccionado del registro permanente,
+     * bloqueando siempre la eliminación del superusuario principal ("admin").
+     */
     private void handleEliminarAdmin() {
         String targetUser = comboUsuariosAdmin.getValue();
         if (targetUser == null) {
@@ -886,6 +1028,11 @@ public class AppController {
         actualizarComboUsuarios();
     }
 
+    /**
+     * Función: handleCerrarSesion
+     * Objetivo: Terminar la sesión actual, destruir la vista principal y recargar el módulo
+     * FXML de Login en una nueva ventana aislada y segura.
+     */
     private void handleCerrarSesion() {
         try {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/Login.fxml"));
@@ -1095,14 +1242,30 @@ public class AppController {
         graphPane.getChildren().addAll(l, punta);
     }
 
-
+    /**
+     * Función: dibujarPuntoTemporal
+     * Objetivo: Renderizar un pequeño círculo semitransparente como previsualización
+     * en las coordenadas donde el usuario ha hecho clic sobre el mapa.
+     * @param x (double) Coordenada en X.
+     * @param y (double) Coordenada en Y.
+     */
     private void dibujarPuntoTemporal(double x, double y) {
         dibujarGrafoVisual();
         Circle preview = new Circle(x, y, 8, Color.web("#2f3542", 0.5));
         graphPane.getChildren().add(preview);
     }
 
-    private void updateStatus(String msg) { if (lblEstado != null) lblEstado.setText(msg); }// Molde de datos para la Tabla Comparativa (Ahora con ID secreto)
+    /**
+     * Función: updateStatus
+     * Objetivo: Actualizar el componente visual (Label) de la esquina inferior
+     * para notificar al usuario sobre eventos, errores o éxitos del sistema.
+     * @param msg (String) El mensaje a mostrar.
+     */
+    private void updateStatus(String msg) {
+        if (lblEstado != null) lblEstado.setText(msg);
+    }
+
+    // Molde de datos para la Tabla Comparativa (Ahora con ID secreto)
 
     /**
      * Record: FilaRuta

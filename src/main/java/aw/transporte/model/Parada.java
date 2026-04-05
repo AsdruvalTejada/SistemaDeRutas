@@ -10,7 +10,7 @@ public class Parada {
     private double coory;
 
     /**
-     * Función: (Constructor) Parada
+     * Función: (Constructor) Parada -
      * Objetivo: Inicializar una nueva parada con sus datos básicos.
      * @param id     (String) Identificador único (ej. P1).
      * @param nombre (String) Nombre legible de la parada.
@@ -63,7 +63,7 @@ public class Parada {
     }
 
     /**
-     * Función: equals
+     * Función: equals -
      * Objetivo: Comparar si dos objetos Parada son iguales basándose en su ID único.
      */
     // Para comparar dos paradas a ver si son las mismas usando su ID

@@ -276,6 +276,68 @@ public class CalculadoraRutas {
     }
 
     /**
+     * Función: floydWarshall
+     * Objetivo: Calcular la ruta mínima entre TODOS los pares de paradas
+     * usando el algoritmo clásico de Floyd-Warshall con tres ciclos anidados.
+     * Nota: No modela penalizaciones por transbordos de línea, ya que esto
+     * requeriría estado adicional por arista (incompatible con la formulación
+     * clásica). Por su incapacidad de calcular penalizaciones e ideas más complejas en los grafos,
+     *  decidimos usar dijkstra().
+     * @param grafoActivo   (Grafo) Red de paradas y conexiones a procesar.
+     * @param criterioViaje (CriterioPesos) Criterio de peso de las aristas.
+     * @return              (ResultadoMatrizGlobal) Matriz de distancias mínimas
+     *                      y mapa de índices.
+     */
+    public ResultadoMatrizGlobal floydWarshall(Grafo grafoActivo, CriterioPesos criterioViaje) {
+        List<String> indices = new ArrayList<>(grafoActivo.getParadas().keySet());
+        Map<String, Integer> paradaAIndice = new HashMap<>();
+        int V = indices.size();
+
+        for (int i = 0; i < V; i++) paradaAIndice.put(indices.get(i), i);
+
+        // Inicializamos la matriz: infinito para todo, 0 en la diagonal
+        double[][] dist = new double[V][V];
+        int[][] siguiente = new int[V][V];
+
+        for (int i = 0; i < V; i++) {
+            Arrays.fill(dist[i], Double.MAX_VALUE / 2); // /2 evita overflow al sumar
+            Arrays.fill(siguiente[i], -1);
+            dist[i][i] = 0.0;
+        }
+
+        // Paso 1: Cargar los pesos reales de las aristas en la matriz
+        for (Map.Entry<String, Set<Ruta>> entry : grafoActivo.getAdyacencia().entrySet()) {
+            int u = paradaAIndice.get(entry.getKey());
+            for (Ruta ruta : entry.getValue()) {
+                Integer vIdx = paradaAIndice.get(ruta.getIdDestino());
+                if (vIdx != null) {
+                    double peso = ruta.getValorPeso(criterioViaje);
+                    if (peso < dist[u][vIdx]) {
+                        dist[u][vIdx] = peso;
+                        siguiente[u][vIdx] = vIdx;
+                    }
+                }
+            }
+        }
+
+        // Paso 2: Los tres ciclos anidados de Floyd-Warshall
+        // Para cada nodo intermedio k, verificamos si ir de i→k→j
+        // es más barato que ir de i→j directamente.
+        for (int k = 0; k < V; k++) {
+            for (int i = 0; i < V; i++) {
+                for (int j = 0; j < V; j++) {
+                    if (dist[i][k] + dist[k][j] < dist[i][j]) {
+                        dist[i][j] = dist[i][k] + dist[k][j];
+                        siguiente[i][j] = siguiente[i][k];
+                    }
+                }
+            }
+        }
+
+        return new ResultadoMatrizGlobal(dist, siguiente, indices, paradaAIndice);
+    }
+
+    /**
      * Función: auditoriaConectividad
      * Objetivo: Verificar qué paradas son inalcanzables desde un punto de origen usando BFS.
      * @param grafo        (Grafo) El grafo que será escaneado.
