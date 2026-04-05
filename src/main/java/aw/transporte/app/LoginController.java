@@ -10,6 +10,12 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+/**
+ * Clase: LoginController
+ * Objetivo: Controlador de la interfaz gráfica de inicio de sesión.
+ * Gestiona el enrutamiento de usuarios (Pasajeros vs Administradores) y ejecuta
+ * el protocolo de seguridad de Autenticación de Dos Factores (2FA) vía correo electrónico.
+ */
 public class LoginController {
 
     @FXML private TextField txtUsuario;
@@ -18,12 +24,23 @@ public class LoginController {
     @FXML private Button btnPasajero;
     @FXML private Label lblErrorLogin;
 
+    /**
+     * Función: initialize
+     * Objetivo: Vincular las acciones iniciales de los botones de la interfaz
+     * con sus respectivos métodos lógicos.
+     */
     @FXML
     public void initialize() {
         btnAdmin.setOnAction(e -> handleLoginAdmin());
         btnPasajero.setOnAction(e -> abrirPantallaPrincipal(false));
     }
 
+    /**
+     * Función: abrirPantallaPrincipal
+     * Objetivo: Cargar la vista principal del sistema (vista.fxml), inyectar el controlador
+     * principal y configurar dinámicamente los permisos de la interfaz gráfica.
+     * @param esAdmin (boolean) True si ingresa un administrador, False si es un pasajero (modo lectura).
+     */
     private void abrirPantallaPrincipal(boolean esAdmin) {
         try {
             java.net.URL url = getClass().getResource("/vista.fxml");
@@ -59,6 +76,12 @@ public class LoginController {
         }
     }
 
+    /**
+     * Función: handleLoginAdmin
+     * Objetivo: Validar las credenciales introducidas contra la base de datos JSON de usuarios.
+     * Si son correctas y existe un correo asociado, dispara un código 2FA y bloquea el acceso
+     * hasta que se valide correctamente en un cuadro de diálogo emergente.
+     */
     private void handleLoginAdmin() {
         String user = txtUsuario.getText().trim();
         String pass = txtPassword.getText().trim();

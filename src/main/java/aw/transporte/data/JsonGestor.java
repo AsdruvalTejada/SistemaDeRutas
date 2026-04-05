@@ -9,6 +9,12 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
+/**
+ * Clase: JsonGestor
+ * Objetivo: Motor de serialización principal del sistema. Se encarga de transformar
+ * la estructura compleja del Grafo (Paradas y Rutas) a texto JSON y viceversa,
+ * garantizando la persistencia de la topología de la red de transporte.
+ */
 public class JsonGestor {
 
     private static final String JSON_PATH = "src/main/resources/data/db_transporte.json";
@@ -21,6 +27,12 @@ public class JsonGestor {
         this.gsonTool = new GsonBuilder().setPrettyPrinting().create();
     }
 
+    /**
+     * Función: saveGrafo
+     * Objetivo: Serializar el objeto Grafo y escribirlo en el archivo de base de datos,
+     * creando los directorios necesarios si estos no existen.
+     * @param mainGrafo (Grafo) La red de transporte actual en memoria.
+     */
     // Método para guardar
     public void saveGrafo(Grafo mainGrafo) {
         File docFile = new File(JSON_PATH);
@@ -40,6 +52,12 @@ public class JsonGestor {
         }
     }
 
+    /**
+     * Función: fetchGrafoData
+     * Objetivo: Buscar, leer y deserializar el archivo JSON para reconstruir el Grafo completo
+     * en memoria al iniciar la aplicación.
+     * @return (Grafo) El grafo cargado desde disco, o un grafo vacío si es la primera ejecución.
+     */
     // Método para cargar
     public Grafo fetchGrafoData() {
         File docFile = new File(JSON_PATH);
