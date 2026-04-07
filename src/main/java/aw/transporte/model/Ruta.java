@@ -62,4 +62,8 @@ public class Ruta {
     public int hashCode() {
         return Objects.hash(idDestino, nombreLinea);
     }
+
+    public void setNombreLinea(String nombreLinea) {
+        this.nombreLinea = nombreLinea;
+    }
 }

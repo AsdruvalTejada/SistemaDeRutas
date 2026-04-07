@@ -264,7 +264,7 @@ public class AppController {
     /**
      * Función: handleAgregarParada
      * Objetivo: Crear una nueva entidad 'Parada' en la estructura del Grafo utilizando
-     * las coordenadas del último clic en el mapa y guardarla en la base de datos JSON.
+     * las coordenadas del último clic en el mapa y guardarla en la base de datos JSON asegurando que no existan nombres duplicados.
      */
     private void handleAgregarParada() {
         String nombreParada = txtParadaNombre.getText().trim();
@@ -274,13 +274,23 @@ public class AppController {
             return;
         }
 
-        try {
-            String nuevoId = sistemaInfo.generarId(); // Usamos el generador automático
+        boolean nombreExiste = sistemaInfo.getParadas().values().stream().anyMatch(p -> p.getNombre().equalsIgnoreCase(nombreParada));
 
+        if (nombreExiste) {
+            Alert alerta = new Alert(Alert.AlertType.WARNING);
+            alerta.setTitle("Validación de Parada");
+            alerta.setHeaderText("Nombre Duplicado");
+            alerta.setContentText("Ya existe una parada con el nombre '" + nombreParada + "'. Por favor, elige otro.");
+            alerta.showAndWait();
+            return; // Detenemos la creación de la parada
+        }
+
+        try {
+            String nuevoId = sistemaInfo.generarId();
             sistemaInfo.agregarParada(new Parada(nuevoId, nombreParada, clickX, clickY));
             dbGestor.saveGrafo(sistemaInfo);
             dibujarGrafoVisual();
-            actualizarComboBoxesParadas(); // Refrescamos las listas
+            actualizarComboBoxesParadas();
 
             updateStatus("Parada guardada automáticamente como: " + nuevoId);
             limpiarCamposParadas();
@@ -292,7 +302,7 @@ public class AppController {
 
     /**
      * Función: handleModificarParada
-     * Objetivo: Actualizar el nombre de una parada existente y persistir el cambio en disco.
+     * Objetivo: Actualizar el nombre de una parada validando que el nuevo nombre no le pertenezca a otra.
      */
     private void handleModificarParada() {
         Parada paradaSeleccionada = comboParadaModificar.getValue();
@@ -305,6 +315,18 @@ public class AppController {
         if (nuevoNombre.isEmpty()) {
             updateStatus(" El nuevo nombre no puede estar vacío.");
             return;
+        }
+
+        boolean nombreExiste = sistemaInfo.getParadas().values().stream()
+                .anyMatch(p -> !p.getId().equals(paradaSeleccionada.getId()) && p.getNombre().equalsIgnoreCase(nuevoNombre));
+
+        if (nombreExiste) {
+            Alert alerta = new Alert(Alert.AlertType.WARNING);
+            alerta.setTitle("Validación de Parada");
+            alerta.setHeaderText("Nombre Duplicado");
+            alerta.setContentText("Ya existe otra parada llamada '" + nuevoNombre + "'.");
+            alerta.showAndWait();
+            return; // Detenemos la modificación
         }
 
         paradaSeleccionada.setNombre(nuevoNombre);
@@ -459,6 +481,7 @@ public class AppController {
     private void handleModificarRuta() {
         Parada origen = comboRutaOrigen.getValue();
         Parada destino = comboRutaDestino.getValue();
+        String nuevaLinea = comboNombreLinea.getValue();
 
         if (origen == null || destino == null) {
             updateStatus(" Seleccione origen y destino para modificar.");
@@ -469,16 +492,34 @@ public class AppController {
             double nuevoTiempo = Double.parseDouble(txtRutaTiempo.getText());
             double nuevoCosto = Double.parseDouble(txtRutaCosto.getText());
 
+            if (nuevaLinea == null || nuevaLinea.trim().isEmpty()) {
+                updateStatus(" Por favor, seleccione o escriba el nombre de la línea.");
+                return;
+            }
+
             Set<Ruta> rutasOrigen = sistemaInfo.getAdyacencia().get(origen.getId());
 
             if (rutasOrigen != null) {
                 for (Ruta r : rutasOrigen) {
                     if (r.getIdDestino().equals(destino.getId())) {
 
+                        if (!r.getNombreLinea().equalsIgnoreCase(nuevaLinea)) {
+                            if (!validContinuidad(origen.getId(), destino.getId(), nuevaLinea)) {
+                                Alert alerta = new Alert(Alert.AlertType.ERROR);
+                                alerta.setTitle("Error de Continuidad Topológica");
+                                alerta.setHeaderText("Conexión Inválida");
+                                alerta.setContentText("No puedes cambiar esta ruta a la línea '" + nuevaLinea + "' porque causaría una fragmentación en el mapa.");
+                                alerta.showAndWait();
+                                return;
+                            }
+                        }
+                        r.setNombreLinea(nuevaLinea);
                         r.getPesos().put(aw.transporte.model.CriterioPesos.TIEMPO, nuevoTiempo);
                         r.getPesos().put(aw.transporte.model.CriterioPesos.COSTO, nuevoCosto);
 
                         dbGestor.saveGrafo(sistemaInfo);
+                        dibujarGrafoVisual();
+                        actualizarComboBoxLineas();
                         updateStatus(" Conexión actualizada exitosamente.");
                         txtRutaTiempo.clear();
                         txtRutaCosto.clear();
@@ -489,7 +530,7 @@ public class AppController {
             updateStatus(" No existe una conexión entre estas paradas.");
 
         } catch (NumberFormatException e) {
-            updateStatus(" Por favor, ingrese valores numéricos válidos.");
+            updateStatus(" Por favor, ingrese valores numéricos válidos en tiempo y costo.");
         }
     }
 
