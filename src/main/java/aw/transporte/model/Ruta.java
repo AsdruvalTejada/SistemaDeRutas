@@ -55,15 +55,16 @@ public class Ruta {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Ruta ruta = (Ruta) o;
-        return Objects.equals(idDestino, ruta.idDestino) && Objects.equals(nombreLinea, ruta.nombreLinea);
+        return idDestino.equals(ruta.idDestino) && nombreLinea.trim().equalsIgnoreCase(ruta.nombreLinea.trim());
+    }
+
+
+    public void setNombreLinea(String nombreLinea) {
+        this.nombreLinea = nombreLinea;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(idDestino, nombreLinea);
-    }
-
-    public void setNombreLinea(String nombreLinea) {
-        this.nombreLinea = nombreLinea;
+        return java.util.Objects.hash(idDestino, nombreLinea.trim().toLowerCase());
     }
 }

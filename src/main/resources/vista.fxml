@@ -68,6 +68,7 @@
                               </HBox>
 
                               <Label style="-fx-text-fill: #57606f; -fx-font-weight: bold;" text="Línea a la que pertenece:" />
+                              <CheckBox fx:id="chkModoEdicion" text="¿Modificar línea existente?" visible="false" style="-fx-text-fill: #e67e22; -fx-font-weight: bold;"/>
                               <ComboBox fx:id="comboNombreLinea" maxWidth="Infinity" promptText="Seleccione o escriba una línea (Ej: Línea Norte)" editable="true" />
                               <Button fx:id="btnAgregarRuta" maxWidth="Infinity" text="Conectar Paradas" />
                               <Button fx:id="btnModificarRuta" maxWidth="Infinity" text="Actualizar Conexión" />

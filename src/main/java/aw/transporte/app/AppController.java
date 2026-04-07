@@ -67,6 +67,9 @@ public class AppController {
     @FXML private Button btnMatrizFloyd;
     @FXML private ComboBox<CriterioPesos> comboCriterioMatriz;
 
+    @FXML private CheckBox chkModoEdicion;
+
+    private Ruta rutaEnEdicion = null;
     private CalculadoraRutas.ResultadoCamino rutaPrincipalMemoria;
     private List<CalculadoraRutas.ResultadoCamino> listaAlternativas;
     private int indiceAlternativaActual = 0;
@@ -162,7 +165,16 @@ public class AppController {
         btnSiguienteAlternativa.setOnAction(e -> handleSiguienteAlternativa());
         btnAuditoriaBFS.setOnAction(e -> handleAuditoriaBFS());
         btnMatrizFloyd.setOnAction(e -> handleMatrizFloyd());
-
+        btnAuditoriaBFS.setOnAction(e -> handleAuditoriaBFS());
+        btnMatrizFloyd.setOnAction(e -> handleMatrizFloyd());
+        comboRutaOrigen.setOnAction(e -> evaluarEstadoDeCalle());
+        comboRutaDestino.setOnAction(e -> evaluarEstadoDeCalle());
+        comboRutaOrigen.setOnAction(e -> evaluarEstadoDeCalle());
+        comboRutaDestino.setOnAction(e -> evaluarEstadoDeCalle());
+        comboNombreLinea.setOnAction(e -> aplicarAutoCompletado());
+        if (chkModoEdicion != null) {
+            chkModoEdicion.setOnAction(e -> alternarModo());
+        }
         // Renderizado inicial y aplicación de placeholders a ComboBoxes
         dibujarGrafoVisual();
         actualizarComboBoxesParadas();
@@ -425,9 +437,8 @@ public class AppController {
                 alerta.setContentText("La '" + nombreLinea + "' ya existe en otra parte del mapa. No puedes crear un tramo aislado.\n\nPor favor, conéctalo a un nodo de la línea existente o utiliza un nombre diferente para esta nueva ruta.");
                 alerta.showAndWait();
                 updateStatus(" Conexión cancelada: Violación de continuidad.");
-                return; // Detenemos la creación
+                return;
             }
-            // ---------------------------------------------------
 
             boolean conectada = sistemaInfo.agregarRuta(origen, destino, nombreLinea, tiempo, costo, distanciaKm);
 
@@ -449,11 +460,62 @@ public class AppController {
         }
     }
 
-    /**
-     * Función: handleEliminarRuta
-     * Objetivo: Eliminar la conexión directa (arista) entre un origen y un destino seleccionados,
-     * actualizando inmediatamente la vista y la base de datos.
-     */
+    private void handleModificarRuta() {
+        if (rutaEnEdicion == null) {
+            updateStatus(" Para actualizar, primero seleccione una línea existente en esta calle.");
+            return;
+        }
+
+        Parada origen = comboRutaOrigen.getValue();
+        Parada destino = comboRutaDestino.getValue();
+        String nuevaLinea = comboNombreLinea.getValue();
+
+        try {
+            boolean cambioRealizado = false;
+
+            if (nuevaLinea != null && !nuevaLinea.trim().isEmpty() && !rutaEnEdicion.getNombreLinea().equalsIgnoreCase(nuevaLinea)) {
+                if (!validContinuidad(origen.getId(), destino.getId(), nuevaLinea)) {
+                    Alert alerta = new Alert(Alert.AlertType.ERROR);
+                    alerta.setTitle("Error de Continuidad");
+                    alerta.setContentText("No puedes cambiar el nombre a '" + nuevaLinea + "' porque fragmentarías el mapa.");
+                    alerta.showAndWait();
+                    return;
+                }
+                rutaEnEdicion.setNombreLinea(nuevaLinea);
+                cambioRealizado = true;
+            }
+
+            String strTiempo = txtRutaTiempo.getText().trim();
+            String strCosto = txtRutaCosto.getText().trim();
+
+            if (!strTiempo.isEmpty()) {
+                double nuevoTiempo = Double.parseDouble(strTiempo);
+                if (nuevoTiempo < 0) throw new NumberFormatException();
+                rutaEnEdicion.getPesos().put(aw.transporte.model.CriterioPesos.TIEMPO, nuevoTiempo);
+                cambioRealizado = true;
+            }
+
+            if (!strCosto.isEmpty()) {
+                double nuevoCosto = Double.parseDouble(strCosto);
+                if (nuevoCosto < 0) throw new NumberFormatException();
+                rutaEnEdicion.getPesos().put(aw.transporte.model.CriterioPesos.COSTO, nuevoCosto);
+                cambioRealizado = true;
+            }
+
+            if (cambioRealizado) {
+                dbGestor.saveGrafo(sistemaInfo);
+                dibujarGrafoVisual();
+                actualizarComboBoxLineas();
+                evaluarEstadoDeCalle(" Conexión actualizada exitosamente.");
+            } else {
+                updateStatus(" No se ingresaron nuevos valores para modificar.");
+            }
+
+        } catch (NumberFormatException e) {
+            updateStatus(" Error: Ingrese valores numéricos válidos en tiempo y costo.");
+        }
+    }
+
     private void handleEliminarRuta() {
         Parada origen = comboRutaOrigen.getValue();
         Parada destino = comboRutaDestino.getValue();
@@ -463,98 +525,13 @@ public class AppController {
             return;
         }
 
-        if (sistemaInfo.eliminarRuta(origen, destino)) {
+        if (rutaEnEdicion != null) {
+            sistemaInfo.getAdyacencia().get(origen.getId()).remove(rutaEnEdicion);
             dbGestor.saveGrafo(sistemaInfo);
             dibujarGrafoVisual();
-            updateStatus(" Línea eliminada.");
+            evaluarEstadoDeCalle(" Línea '" + rutaEnEdicion.getNombreLinea() + "' eliminada con éxito.");
         } else {
-            updateStatus(" No se encontró la ruta o ya fue eliminada.");
-        }
-    }
-
-    /**
-     * Función: handleModificarRuta
-     * Objetivo: Actualizar los pesos (tiempo y costo) de una arista ya existente sin alterar
-     * su geometría o nombre de línea. Persiste los datos en el archivo JSON.
-     */
-    /**
-     * Función: handleModificarRuta
-     * Objetivo: Actualizar los pesos y/o la línea de una conexión de forma independiente y opcional.
-     */
-    private void handleModificarRuta() {
-        Parada origen = comboRutaOrigen.getValue();
-        Parada destino = comboRutaDestino.getValue();
-        String nuevaLinea = comboNombreLinea.getValue();
-
-        if (origen == null || destino == null) {
-            updateStatus(" Seleccione origen y destino para modificar.");
-            return;
-        }
-
-        Set<Ruta> rutasOrigen = sistemaInfo.getAdyacencia().get(origen.getId());
-        Ruta rutaModificar = null;
-
-        if (rutasOrigen != null) {
-            for (Ruta r : rutasOrigen) {
-                if (r.getIdDestino().equals(destino.getId())) {
-                    rutaModificar = r;
-                    break;
-                }
-            }
-        }
-
-        if (rutaModificar == null) {
-            updateStatus(" No existe una conexión entre estas paradas.");
-            return;
-        }
-
-        try {
-            boolean cambioRealizado = false;
-
-            if (nuevaLinea != null && !nuevaLinea.trim().isEmpty() && !rutaModificar.getNombreLinea().equalsIgnoreCase(nuevaLinea)) {
-
-                if (!validContinuidad(origen.getId(), destino.getId(), nuevaLinea)) {
-                    Alert alerta = new Alert(Alert.AlertType.ERROR);
-                    alerta.setTitle("Error de Continuidad Topológica");
-                    alerta.setHeaderText("Conexión Inválida");
-                    alerta.setContentText("No puedes cambiar esta ruta a la línea '" + nuevaLinea + "' porque causaría una fragmentación en el mapa.");
-                    alerta.showAndWait();
-                    return;
-                }
-
-                rutaModificar.setNombreLinea(nuevaLinea);
-                cambioRealizado = true;
-            }
-
-            String strTiempo = txtRutaTiempo.getText().trim();
-            if (!strTiempo.isEmpty()) {
-                double nuevoTiempo = Double.parseDouble(strTiempo);
-                if (nuevoTiempo < 0) throw new NumberFormatException();
-                rutaModificar.getPesos().put(aw.transporte.model.CriterioPesos.TIEMPO, nuevoTiempo);
-                cambioRealizado = true;
-            }
-
-            String strCosto = txtRutaCosto.getText().trim();
-            if (!strCosto.isEmpty()) {
-                double nuevoCosto = Double.parseDouble(strCosto);
-                if (nuevoCosto < 0) throw new NumberFormatException();
-                rutaModificar.getPesos().put(aw.transporte.model.CriterioPesos.COSTO, nuevoCosto);
-                cambioRealizado = true;
-            }
-
-            if (cambioRealizado) {
-                dbGestor.saveGrafo(sistemaInfo);
-                dibujarGrafoVisual();
-                actualizarComboBoxLineas();
-                updateStatus(" Conexión actualizada exitosamente.");
-                txtRutaTiempo.clear();
-                txtRutaCosto.clear();
-            } else {
-                updateStatus(" No se ingresaron nuevos valores para modificar.");
-            }
-
-        } catch (NumberFormatException e) {
-            updateStatus(" Por favor, ingrese valores válidos.");
+            updateStatus("️ Seleccione una línea existente de la lista para poder eliminarla.");
         }
     }
 
@@ -575,6 +552,113 @@ public class AppController {
 
         comboNombreLinea.setItems(FXCollections.observableArrayList(lineasUnicas));
         comboNombreLinea.setEditable(true);
+    }
+
+    /**
+     * Llamada normal cuando el usuario solo está curioseando las calles.
+     */
+    private void evaluarEstadoDeCalle() {
+        evaluarEstadoDeCalle(null);
+    }
+
+    /**
+     * Motor principal: Refresca la UI pero respeta si le pasamos un mensaje de éxito.
+     */
+    private void evaluarEstadoDeCalle(String mensajeExito) {
+        Parada origen = comboRutaOrigen.getValue();
+        Parada destino = comboRutaDestino.getValue();
+        rutaEnEdicion = null;
+        txtRutaTiempo.clear();
+        txtRutaCosto.clear();
+        actualizarComboBoxLineas();
+
+        if (origen == null || destino == null || chkModoEdicion == null) return;
+
+        Set<Ruta> rutasOrigen = sistemaInfo.getAdyacencia().get(origen.getId());
+        boolean hayLineas = false;
+
+        if (rutasOrigen != null) {
+            for (Ruta r : rutasOrigen) {
+                if (r.getIdDestino().equals(destino.getId())) {
+                    hayLineas = true;
+                    break;
+                }
+            }
+        }
+
+        if (hayLineas) {
+            chkModoEdicion.setVisible(true);
+            chkModoEdicion.setSelected(false);
+            if (mensajeExito != null) {
+                updateStatus(mensajeExito);
+            } else {
+                updateStatus(" Hay líneas aquí. Marque la casilla arriba si desea editarlas.");
+            }
+        } else {
+            chkModoEdicion.setVisible(false);
+            if (mensajeExito != null) {
+                updateStatus(mensajeExito);
+            } else {
+                updateStatus(" Calle vacía. Ingrese los datos para crear una nueva línea.");
+            }
+        }
+    }
+
+    /**
+     * Qué pasa cuando el usuario le da clic al CheckBox.
+     */
+    private void alternarModo() {
+        Parada origen = comboRutaOrigen.getValue();
+        Parada destino = comboRutaDestino.getValue();
+        if (origen == null || destino == null) return;
+
+        if (chkModoEdicion.isSelected()) {
+            Set<Ruta> rutasOrigen = sistemaInfo.getAdyacencia().get(origen.getId());
+            List<String> lineasActivas = new ArrayList<>();
+            for (Ruta r : rutasOrigen) {
+                if (r.getIdDestino().equals(destino.getId())) {
+                    lineasActivas.add(r.getNombreLinea());
+                }
+            }
+            comboNombreLinea.setItems(FXCollections.observableArrayList(lineasActivas));
+            comboNombreLinea.setPromptText("Elija la línea a editar...");
+            updateStatus(" MODO EDICIÓN: Elija una línea para autocompletar.");
+        } else {
+            actualizarComboBoxLineas();
+            rutaEnEdicion = null;
+            txtRutaTiempo.clear();
+            txtRutaCosto.clear();
+            updateStatus(" MODO CREACIÓN: Escriba o seleccione una línea.");
+        }
+    }
+
+    /**
+     * Auto-completa los datos solo si el CheckBox está marcado y elige una línea.
+     */
+    private void aplicarAutoCompletado() {
+        if (chkModoEdicion != null && !chkModoEdicion.isSelected()) {
+            rutaEnEdicion = null;
+            return;
+        }
+
+        Parada origen = comboRutaOrigen.getValue();
+        Parada destino = comboRutaDestino.getValue();
+        String linea = comboNombreLinea.getValue();
+
+        if (origen == null || destino == null || linea == null) return;
+
+        Set<Ruta> rutas = sistemaInfo.getAdyacencia().get(origen.getId());
+        if (rutas != null) {
+            for (Ruta r : rutas) {
+                if (r.getIdDestino().equals(destino.getId()) && r.getNombreLinea().equalsIgnoreCase(linea)) {
+                    rutaEnEdicion = r;
+                    txtRutaTiempo.setText(String.valueOf(r.getPesos().get(aw.transporte.model.CriterioPesos.TIEMPO)));
+                    txtRutaCosto.setText(String.valueOf(r.getPesos().get(aw.transporte.model.CriterioPesos.COSTO)));
+                    updateStatus(" Datos cargados. Modifique y guarde.");
+                    return;
+                }
+            }
+        }
     }
 
     /**
