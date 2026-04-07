@@ -418,7 +418,6 @@ public class AppController {
                 return;
             }
 
-            // --- NUEVA VALIDACIÓN DE CONTINUIDAD (EL ESCUDO) ---
             if (!validContinuidad(origen.getId(), destino.getId(), nombreLinea)) {
                 Alert alerta = new Alert(Alert.AlertType.ERROR);
                 alerta.setTitle("Error de Continuidad de Red");
@@ -478,6 +477,10 @@ public class AppController {
      * Objetivo: Actualizar los pesos (tiempo y costo) de una arista ya existente sin alterar
      * su geometría o nombre de línea. Persiste los datos en el archivo JSON.
      */
+    /**
+     * Función: handleModificarRuta
+     * Objetivo: Actualizar los pesos y/o la línea de una conexión de forma independiente y opcional.
+     */
     private void handleModificarRuta() {
         Parada origen = comboRutaOrigen.getValue();
         Parada destino = comboRutaDestino.getValue();
@@ -488,49 +491,70 @@ public class AppController {
             return;
         }
 
-        try {
-            double nuevoTiempo = Double.parseDouble(txtRutaTiempo.getText());
-            double nuevoCosto = Double.parseDouble(txtRutaCosto.getText());
+        Set<Ruta> rutasOrigen = sistemaInfo.getAdyacencia().get(origen.getId());
+        Ruta rutaModificar = null;
 
-            if (nuevaLinea == null || nuevaLinea.trim().isEmpty()) {
-                updateStatus(" Por favor, seleccione o escriba el nombre de la línea.");
-                return;
-            }
-
-            Set<Ruta> rutasOrigen = sistemaInfo.getAdyacencia().get(origen.getId());
-
-            if (rutasOrigen != null) {
-                for (Ruta r : rutasOrigen) {
-                    if (r.getIdDestino().equals(destino.getId())) {
-
-                        if (!r.getNombreLinea().equalsIgnoreCase(nuevaLinea)) {
-                            if (!validContinuidad(origen.getId(), destino.getId(), nuevaLinea)) {
-                                Alert alerta = new Alert(Alert.AlertType.ERROR);
-                                alerta.setTitle("Error de Continuidad Topológica");
-                                alerta.setHeaderText("Conexión Inválida");
-                                alerta.setContentText("No puedes cambiar esta ruta a la línea '" + nuevaLinea + "' porque causaría una fragmentación en el mapa.");
-                                alerta.showAndWait();
-                                return;
-                            }
-                        }
-                        r.setNombreLinea(nuevaLinea);
-                        r.getPesos().put(aw.transporte.model.CriterioPesos.TIEMPO, nuevoTiempo);
-                        r.getPesos().put(aw.transporte.model.CriterioPesos.COSTO, nuevoCosto);
-
-                        dbGestor.saveGrafo(sistemaInfo);
-                        dibujarGrafoVisual();
-                        actualizarComboBoxLineas();
-                        updateStatus(" Conexión actualizada exitosamente.");
-                        txtRutaTiempo.clear();
-                        txtRutaCosto.clear();
-                        return;
-                    }
+        if (rutasOrigen != null) {
+            for (Ruta r : rutasOrigen) {
+                if (r.getIdDestino().equals(destino.getId())) {
+                    rutaModificar = r;
+                    break;
                 }
             }
+        }
+
+        if (rutaModificar == null) {
             updateStatus(" No existe una conexión entre estas paradas.");
+            return;
+        }
+
+        try {
+            boolean cambioRealizado = false;
+
+            if (nuevaLinea != null && !nuevaLinea.trim().isEmpty() && !rutaModificar.getNombreLinea().equalsIgnoreCase(nuevaLinea)) {
+
+                if (!validContinuidad(origen.getId(), destino.getId(), nuevaLinea)) {
+                    Alert alerta = new Alert(Alert.AlertType.ERROR);
+                    alerta.setTitle("Error de Continuidad Topológica");
+                    alerta.setHeaderText("Conexión Inválida");
+                    alerta.setContentText("No puedes cambiar esta ruta a la línea '" + nuevaLinea + "' porque causaría una fragmentación en el mapa.");
+                    alerta.showAndWait();
+                    return;
+                }
+
+                rutaModificar.setNombreLinea(nuevaLinea);
+                cambioRealizado = true;
+            }
+
+            String strTiempo = txtRutaTiempo.getText().trim();
+            if (!strTiempo.isEmpty()) {
+                double nuevoTiempo = Double.parseDouble(strTiempo);
+                if (nuevoTiempo < 0) throw new NumberFormatException();
+                rutaModificar.getPesos().put(aw.transporte.model.CriterioPesos.TIEMPO, nuevoTiempo);
+                cambioRealizado = true;
+            }
+
+            String strCosto = txtRutaCosto.getText().trim();
+            if (!strCosto.isEmpty()) {
+                double nuevoCosto = Double.parseDouble(strCosto);
+                if (nuevoCosto < 0) throw new NumberFormatException();
+                rutaModificar.getPesos().put(aw.transporte.model.CriterioPesos.COSTO, nuevoCosto);
+                cambioRealizado = true;
+            }
+
+            if (cambioRealizado) {
+                dbGestor.saveGrafo(sistemaInfo);
+                dibujarGrafoVisual();
+                actualizarComboBoxLineas();
+                updateStatus(" Conexión actualizada exitosamente.");
+                txtRutaTiempo.clear();
+                txtRutaCosto.clear();
+            } else {
+                updateStatus(" No se ingresaron nuevos valores para modificar.");
+            }
 
         } catch (NumberFormatException e) {
-            updateStatus(" Por favor, ingrese valores numéricos válidos en tiempo y costo.");
+            updateStatus(" Por favor, ingrese valores válidos.");
         }
     }
 

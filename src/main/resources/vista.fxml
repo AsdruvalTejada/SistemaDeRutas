@@ -70,7 +70,7 @@
                               <Label style="-fx-text-fill: #57606f; -fx-font-weight: bold;" text="Línea a la que pertenece:" />
                               <ComboBox fx:id="comboNombreLinea" maxWidth="Infinity" promptText="Seleccione o escriba una línea (Ej: Línea Norte)" editable="true" />
                               <Button fx:id="btnAgregarRuta" maxWidth="Infinity" text="Conectar Paradas" />
-                              <Button fx:id="btnModificarRuta" maxWidth="Infinity" text="Actualizar Costo/Tiempo" />
+                              <Button fx:id="btnModificarRuta" maxWidth="Infinity" text="Actualizar Conexión" />
                               <Button fx:id="btnEliminarRuta" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #eb4d4b; -fx-border-color: #eb4d4b; -fx-border-radius: 5; -fx-cursor: hand;" text="Eliminar Conexión" />
                            </children>
                         </VBox>
