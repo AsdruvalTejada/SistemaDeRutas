@@ -80,6 +80,9 @@ public class AppController {
     private JsonGestor dbGestor;
     private static final double ZOOM = 7.0;
     private double clickX, clickY;
+    private Map<String, Color> mapaColoresLineas = new HashMap<>();
+    private double leyendaX = 20;
+    private double leyendaY = 20;
 
     /**
      * Función: initialize
@@ -163,6 +166,7 @@ public class AppController {
         // Renderizado inicial y aplicación de placeholders a ComboBoxes
         dibujarGrafoVisual();
         actualizarComboBoxesParadas();
+        actualizarComboBoxLineas();
         aplicarFijadorDeTexto(comboRutaOrigen, "Seleccione Origen");
         aplicarFijadorDeTexto(comboRutaDestino, "Seleccione Destino");
         aplicarFijadorDeTexto(comboCalcOrigen, "Punto de Partida");
@@ -855,6 +859,92 @@ public class AppController {
     }
 
     /**
+     * Función: obtenerColorPorLinea
+     * Objetivo: Asignar un color único a cada línea dinámicamente. Si la línea es nueva,
+     * calcula un nuevo color usando el Radio Áureo para asegurar contraste visual.
+     */
+    private Color obtenerColorPorLinea(String linea) {
+        if (linea == null || linea.trim().isEmpty()) return Color.BLACK;
+
+        // Si ya le habíamos asignado un color a esta línea, lo devolvemos
+        if (mapaColoresLineas.containsKey(linea)) {
+            return mapaColoresLineas.get(linea);
+        }
+
+        // Si es una línea nueva, generamos un color único matemáticamente
+        // 137.508 es el ángulo de oro, garantiza que los colores se distribuyan bien en el círculo cromático
+        double hue = (mapaColoresLineas.size() * 137.508) % 360.0;
+        Color nuevoColor = Color.hsb(hue, 0.8, 0.8); // Color vivo y brillante
+
+        // Guardamos el color para que todos los tramos de esta línea sean iguales
+        mapaColoresLineas.put(linea, nuevoColor);
+        return nuevoColor;
+    }
+
+    /**
+     * Función: dibujarLeyenda
+     * Objetivo: Renderizar un panel flotante que indica qué color corresponde a cada línea.
+     * Ahora con capacidad de "Drag & Drop" para que el usuario la mueva si le estorba.
+     */
+    private void dibujarLeyenda() {
+        if (mapaColoresLineas.isEmpty()) return;
+
+        VBox leyenda = new VBox(8);
+
+        // 1. ¡CLAVE! Usamos la memoria en lugar de números fijos
+        leyenda.setLayoutX(leyendaX);
+        leyenda.setLayoutY(leyendaY);
+
+        String estiloBase = "-fx-background-color: rgba(255, 255, 255, 0.9); " +
+                "-fx-padding: 15; " +
+                "-fx-border-color: #bdc3c7; " +
+                "-fx-border-radius: 8; " +
+                "-fx-background-radius: 8; " +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 5); ";
+
+        leyenda.setStyle(estiloBase + "-fx-cursor: open-hand;");
+
+        Label titulo = new Label("🚇 Rutas Activas");
+        titulo.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2c3e50;");
+        leyenda.getChildren().add(titulo);
+
+        for (Map.Entry<String, Color> entry : mapaColoresLineas.entrySet()) {
+            javafx.scene.layout.HBox fila = new javafx.scene.layout.HBox(8);
+            fila.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            Circle colorDot = new Circle(7, entry.getValue());
+            colorDot.setStroke(Color.DARKGRAY);
+            Label nombre = new Label(entry.getKey());
+            nombre.setStyle("-fx-font-size: 12px; -fx-text-fill: #34495e; -fx-font-weight: bold;");
+            fila.getChildren().addAll(colorDot, nombre);
+            leyenda.getChildren().add(fila);
+        }
+
+        final double[] dragDelta = new double[2];
+
+        leyenda.setOnMousePressed(e -> {
+            leyenda.setStyle(estiloBase + "-fx-cursor: closed-hand;");
+            dragDelta[0] = leyenda.getLayoutX() - e.getSceneX();
+            dragDelta[1] = leyenda.getLayoutY() - e.getSceneY();
+        });
+
+        leyenda.setOnMouseDragged(e -> {
+            // Actualizamos visualmente el movimiento
+            leyenda.setLayoutX(e.getSceneX() + dragDelta[0]);
+            leyenda.setLayoutY(e.getSceneY() + dragDelta[1]);
+
+            // 2. ¡CLAVE! Guardamos la nueva posición en la memoria global del controlador
+            leyendaX = leyenda.getLayoutX();
+            leyendaY = leyenda.getLayoutY();
+        });
+
+        leyenda.setOnMouseReleased(e -> {
+            leyenda.setStyle(estiloBase + "-fx-cursor: open-hand;");
+        });
+
+        graphPane.getChildren().add(leyenda);
+    }
+
+    /**
      * Función: dibujarGrafoConCaminoEspecial
      * Objetivo: Limpiar el lienzo y redibujar solo una ruta específica (camino) destacada visualmente.
      * @param camino        (List<String>) Secuencia de IDs de paradas a resaltar.
@@ -869,7 +959,8 @@ public class AppController {
             Parada p1 = paradas.get(camino.get(i));
             Parada p2 = paradas.get(camino.get(i + 1));
             if (p1 != null && p2 != null) {
-                crearFlecha(p1, p2, colorCamino, 6.0, 1.0, esAlternativa);
+                // Le pasamos "Ruta Seleccionada" para el tooltip
+                crearFlecha(p1, p2, colorCamino, 6.0, 1.0, esAlternativa, "Ruta Viaje");
             }
         }
     }
@@ -1078,19 +1169,11 @@ public class AppController {
             for (Ruta r : adyacencia.get(idOrigen)) {
                 Parada d = paradas.get(r.getIdDestino());
                 if (d != null) {
-                    // Revisamos si el destino también tiene una ruta de vuelta hacia este origen
-                    boolean tieneVuelta = false;
-                    Set<Ruta> rutasDestino = adyacencia.get(d.getId());
-                    if (rutasDestino != null) {
-                        for (Ruta vuelta : rutasDestino) {
-                            if (vuelta.getIdDestino().equals(p.getId())) {
-                                tieneVuelta = true;
-                                break;
-                            }
-                        }
-                    }
-                    Color colorConexion = tieneVuelta ? Color.BLACK : Color.web("#222222");
-                    crearFlecha(p, d, colorConexion, 2.5, 1.0, false);
+                    // Usamos el color asignado dinámicamente a la línea
+                    Color colorConexion = obtenerColorPorLinea(r.getNombreLinea());
+
+                    // Le pasamos el nombre de la línea para el Tooltip (Globo de texto)
+                    crearFlecha(p, d, colorConexion, 3.0, 0.8, false, r.getNombreLinea());
                 }
             }
         }
@@ -1167,6 +1250,7 @@ public class AppController {
                         }
                     }
                 }
+
             });
 
 
@@ -1192,6 +1276,7 @@ public class AppController {
             // Añadir todo al panel
             graphPane.getChildren().addAll(c, nameLabel);
         }
+        dibujarLeyenda();
     }
 
     /**
@@ -1204,7 +1289,7 @@ public class AppController {
      * @param opacidad      (double) Nivel de transparencia de la conexión.
      * @param esAlternativa (boolean) Si es true, el trazo de la línea se renderiza de forma punteada.
      */
-    private void crearFlecha(Parada origen, Parada destino, Color color, double grosor, double opacidad, boolean esAlternativa) {
+    private void crearFlecha(Parada origen, Parada destino, Color color, double grosor, double opacidad, boolean esAlternativa, String nombreLinea) {
         double x1 = origen.getCoorx() * ZOOM + 100;
         double y1 = origen.getCoory() * ZOOM + 100;
         double x2 = destino.getCoorx() * ZOOM + 100;
@@ -1215,10 +1300,7 @@ public class AppController {
         l.setStrokeWidth(grosor);
         l.setOpacity(opacidad);
 
-        // Si es una ruta alternativa, la hacemos punteada
-        if (esAlternativa) {
-            l.getStrokeDashArray().addAll(10d, 10d);
-        }
+        if (esAlternativa) l.getStrokeDashArray().addAll(10d, 10d);
 
         double dx = x2 - x1;
         double dy = y2 - y1;
@@ -1233,12 +1315,16 @@ public class AppController {
         double yBase2 = puntoPuntaY - tamanoCabeza * Math.sin(angulo + Math.toRadians(30));
 
         Polygon punta = new Polygon();
-        punta.getPoints().addAll(new Double[]{
-                puntoPuntaX, puntoPuntaY, xBase1, yBase1, xBase2, yBase2
-        });
-
+        punta.getPoints().addAll(new Double[]{ puntoPuntaX, puntoPuntaY, xBase1, yBase1, xBase2, yBase2 });
         punta.setFill(color);
         punta.setOpacity(1.0);
+
+        // --- MAGIA UX: TOOLTIP EN LA FLECHA ---
+        Tooltip tt = new Tooltip("Línea: " + (nombreLinea != null ? nombreLinea : "Desconocida"));
+        tt.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        Tooltip.install(l, tt);
+        Tooltip.install(punta, tt);
+        // --------------------------------------
 
         graphPane.getChildren().addAll(l, punta);
     }
