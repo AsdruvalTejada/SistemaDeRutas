@@ -516,6 +516,12 @@ public class AppController {
         }
     }
 
+    /**
+     * Función: handleEliminarRuta
+     * Objetivo: Eliminar una conexión. Implementa una Validación Predictiva (What-If):
+     * Borra la ruta temporalmente en memoria, ejecuta BFS, y si detecta que la red
+     * se fractura, lanza una advertencia antes de guardar los cambios en disco.
+     */
     private void handleEliminarRuta() {
         Parada origen = comboRutaOrigen.getValue();
         Parada destino = comboRutaDestino.getValue();
@@ -527,11 +533,36 @@ public class AppController {
 
         if (rutaEnEdicion != null) {
             sistemaInfo.getAdyacencia().get(origen.getId()).remove(rutaEnEdicion);
+
+            CalculadoraRutas motor = new CalculadoraRutas();
+            String paradaInicio = sistemaInfo.getParadas().keySet().iterator().next();
+            Set<String> huerfanas = motor.auditoriaConectividad(sistemaInfo, paradaInicio);
+
+            if (!huerfanas.isEmpty()) {
+                Alert alerta = new Alert(Alert.AlertType.WARNING);
+                alerta.setTitle("Advertencia Crítica de Conectividad");
+                alerta.setHeaderText("️ Riesgo de Paradas Aisladas");
+                alerta.setContentText("Si eliminas la línea '" + rutaEnEdicion.getNombreLinea() + "', el algoritmo BFS ha detectado que " + huerfanas.size() + " parada(s) quedarán completamente desconectadas del mapa.\n\n¿Estás seguro de que deseas aplicar este cierre vial?");
+
+                ButtonType btnContinuar = new ButtonType("Sí, eliminar", ButtonBar.ButtonData.OK_DONE);
+                ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                alerta.getButtonTypes().setAll(btnContinuar, btnCancelar);
+
+                Optional<ButtonType> resultado = alerta.showAndWait();
+
+                if (resultado.isPresent() && resultado.get() == btnCancelar) {
+                    sistemaInfo.getAdyacencia().get(origen.getId()).add(rutaEnEdicion);
+                    updateStatus(" Eliminación cancelada por seguridad.");
+                    return;
+                }
+            }
+
             dbGestor.saveGrafo(sistemaInfo);
             dibujarGrafoVisual();
             evaluarEstadoDeCalle(" Línea '" + rutaEnEdicion.getNombreLinea() + "' eliminada con éxito.");
+
         } else {
-            updateStatus("️ Seleccione una línea existente de la lista para poder eliminarla.");
+            updateStatus(" Seleccione una línea existente de la lista para poder eliminarla.");
         }
     }
 

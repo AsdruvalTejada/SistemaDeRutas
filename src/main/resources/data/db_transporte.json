@@ -1249,39 +1249,6 @@
           "DISTANCIA": 15.0,
           "TRANSBORDOS": 1.0
         }
-      },
-      {
-        "idOrigen": "P24",
-        "idDestino": "P26",
-        "nombreLinea": "Tren Ligero (Norte)",
-        "pesos": {
-          "COSTO": 12.0,
-          "TIEMPO": 20.0,
-          "DISTANCIA": 2.17,
-          "TRANSBORDOS": 1.0
-        }
-      },
-      {
-        "idOrigen": "P24",
-        "idDestino": "P26",
-        "nombreLinea": "Expreso Aeropuerto",
-        "pesos": {
-          "DISTANCIA": 2.17,
-          "COSTO": 25.0,
-          "TIEMPO": 12.0,
-          "TRANSBORDOS": 1.0
-        }
-      },
-      {
-        "idOrigen": "P24",
-        "idDestino": "P26",
-        "nombreLinea": "Parada M",
-        "pesos": {
-          "COSTO": 250.0,
-          "TIEMPO": 360.0,
-          "TRANSBORDOS": 1.0,
-          "DISTANCIA": 2.17
-        }
       }
     ],
     "P25": [
