@@ -1064,7 +1064,6 @@ public class AppController {
     /**
      * Función: dibujarLeyenda
      * Objetivo: Renderizar un panel flotante que indica qué color corresponde a cada línea.
-     * Ahora con capacidad de "Drag & Drop" para que el usuario la mueva si le estorba.
      */
     private void dibujarLeyenda() {
         if (mapaColoresLineas.isEmpty()) return;

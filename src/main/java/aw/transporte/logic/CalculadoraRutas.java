@@ -9,7 +9,7 @@ import java.util.*;
 /**
  * Clase: CalculadoraRutas
  * Objetivo: Motor de búsqueda y optimización que implementa los algoritmos clásicos
- * de grafos (Dijkstra, Bellman-Ford, Floyd-Warshall y Yen) para la gestión de transporte.
+ * de grafos (Dijkstra, Bellman-Ford, Floyd-Warshall y Yen Completo) para la gestión de transporte.
  */
 public class CalculadoraRutas {
 
@@ -36,24 +36,159 @@ public class CalculadoraRutas {
      * @return         (ResultadoCamino) Un objeto con la lista de paradas de la mejor ruta y su costo total.
      */
     public ResultadoCamino calcularRutaIdeal(Grafo grafo, String origen, String destino, CriterioPesos criterio) {
-        return switch (criterio) {
-            // Pasamos 'null' porque en la ruta ideal no queremos bloquear ninguna calle
-            case TIEMPO, DISTANCIA, TRANSBORDOS -> dijkstra(grafo, origen, destino, criterio, null);
-            case COSTO -> bellmanFord(grafo, origen, destino, criterio);
-        };
+        return buscarRutaConBloqueos(grafo, origen, destino, criterio, new HashSet<>(), new HashSet<>());
+    }
+
+    /**
+     * Función: buscarRutaConBloqueos
+     * Objetivo: Controlador central que enruta la búsqueda hacia Dijkstra o Bellman-Ford,
+     * aplicando listas de bloqueos dinámicos. Es el núcleo de la generación de alternativas.
+     * @param grafo             (Grafo) El grafo activo.
+     * @param origen            (String) ID de la parada inicial.
+     * @param destino           (String) ID de la parada final.
+     * @param criterio          (CriterioPesos) Criterio a minimizar.
+     * @param aristasBloqueadas (Set<Ruta>) Conjunto de rutas a ignorar en este cálculo.
+     * @param nodosBloqueados   (Set<String>) Conjunto de paradas a ignorar en este cálculo.
+     * @return                  (ResultadoCamino) La ruta calculada evadiendo los bloqueos.
+     */
+    private ResultadoCamino buscarRutaConBloqueos(Grafo grafo, String origen, String destino, CriterioPesos criterio, Set<Ruta> aristasBloqueadas, Set<String> nodosBloqueados) {
+        if (criterio == CriterioPesos.COSTO) {
+            return bellmanFord(grafo, origen, destino, criterio, aristasBloqueadas, nodosBloqueados);
+        } else {
+            return dijkstra(grafo, origen, destino, criterio, aristasBloqueadas, nodosBloqueados);
+        }
+    }
+
+    /**
+     * Función: obtenerAlternativas
+     * Objetivo: Generar una lista de rutas alternativas utilizando el verdadero Algoritmo de Yen
+     * (K-Shortest Paths con Spur Paths). Bloquea sub-rutas y nodos para forzar desvíos reales.
+     * @param grafo    (Grafo) El grafo sobre el cual calcular las alternativas.
+     * @param origen   (String) ID de la parada de inicio.
+     * @param destino  (String) ID de la parada de destino.
+     * @param criterio (CriterioPesos) El criterio para evaluar el peso de las rutas.
+     * @return         (List<ResultadoCamino>) Lista de rutas alternativas ordenadas de mejor a peor.
+     */
+    public List<ResultadoCamino> obtenerAlternativas(Grafo grafo, String origen, String destino, CriterioPesos criterio) {
+        List<ResultadoCamino> alternativasA = new ArrayList<>();
+        PriorityQueue<ResultadoCamino> posiblesB = new PriorityQueue<>(Comparator.comparingDouble(r -> r.costoTotal));
+
+        // 1. Encontrar la ruta principal
+        ResultadoCamino principal = buscarRutaConBloqueos(grafo, origen, destino, criterio, new HashSet<>(), new HashSet<>());
+        if (principal == null || principal.paradas.size() < 2) return alternativasA;
+        alternativasA.add(principal);
+
+        int maxAlternativas = 4; // Queremos 4 alternativas extra (Total 5 opciones)
+
+        // 2. Generación de Spur Paths
+        for (int k = 1; k <= maxAlternativas; k++) {
+            ResultadoCamino rutaAnterior = alternativasA.get(k - 1);
+
+            for (int i = 0; i < rutaAnterior.paradas.size() - 1; i++) {
+                String nodoDesvio = rutaAnterior.paradas.get(i);
+                List<String> rutaRaiz = rutaAnterior.paradas.subList(0, i + 1);
+
+                Set<Ruta> aristasBloqueadas = new HashSet<>();
+                Set<String> nodosBloqueados = new HashSet<>();
+
+                // Bloquear rutas que ya conocemos para forzar a buscar caminos nuevos
+                for (ResultadoCamino alt : alternativasA) {
+                    if (alt.paradas.size() > i && alt.paradas.subList(0, i + 1).equals(rutaRaiz)) {
+                        String u = alt.paradas.get(i);
+                        String v = alt.paradas.get(i + 1);
+                        for (Ruta r : grafo.getAdyacencia().getOrDefault(u, new HashSet<>())) {
+                            if (r.getIdDestino().equals(v)) aristasBloqueadas.add(r);
+                        }
+                    }
+                }
+
+                // Bloquear nodos de la ruta raíz para evitar bucles hacia atrás
+                for (int j = 0; j < rutaRaiz.size() - 1; j++) {
+                    nodosBloqueados.add(rutaRaiz.get(j));
+                }
+
+                // Buscar el desvío desde el nodo actual
+                ResultadoCamino caminoDesvio = buscarRutaConBloqueos(grafo, nodoDesvio, destino, criterio, aristasBloqueadas, nodosBloqueados);
+
+                if (caminoDesvio != null) {
+                    List<String> caminoTotal = new ArrayList<>(rutaRaiz);
+                    caminoTotal.remove(caminoTotal.size() - 1); // Quitar duplicado
+                    caminoTotal.addAll(caminoDesvio.paradas);
+
+                    double costoTotal = recalcularCostoExacto(grafo, caminoTotal, criterio);
+                    ResultadoCamino nuevoCandidato = new ResultadoCamino(caminoTotal, costoTotal);
+
+                    // Evitar duplicados
+                    boolean duplicado = false;
+                    for (ResultadoCamino p : alternativasA) if (p.paradas.equals(caminoTotal)) duplicado = true;
+                    for (ResultadoCamino p : posiblesB) if (p.paradas.equals(caminoTotal)) duplicado = true;
+
+                    if (!duplicado) posiblesB.add(nuevoCandidato);
+                }
+            }
+
+            if (posiblesB.isEmpty()) break;
+            alternativasA.add(posiblesB.poll());
+        }
+
+        alternativasA.remove(0); // Separamos la principal de la lista de alternativas
+        return alternativasA;
+    }
+
+    /**
+     * Función: recalcularCostoExacto
+     * Objetivo: Suma los pesos reales de una ruta fusionada (Raíz + Desvío),
+     * aplicando correctamente las penalizaciones de transbordo en el proceso.
+     */
+    private double recalcularCostoExacto(Grafo grafo, List<String> camino, CriterioPesos criterio) {
+        double costo = 0.0;
+        String lineaAnterior = null;
+
+        for (int i = 0; i < camino.size() - 1; i++) {
+            String u = camino.get(i);
+            String v = camino.get(i + 1);
+
+            double mejorPeso = Double.MAX_VALUE;
+            String mejorLinea = null;
+
+            for (Ruta r : grafo.getAdyacencia().getOrDefault(u, new HashSet<>())) {
+                if (r.getIdDestino().equals(v)) {
+                    double peso = (criterio == CriterioPesos.TRANSBORDOS) ? 0.0 : r.getValorPeso(criterio);
+                    double penalizacion = 0.0;
+
+                    if (lineaAnterior != null && !lineaAnterior.equals(r.getNombreLinea())) {
+                        if (criterio == CriterioPesos.TIEMPO) penalizacion = 5.0;
+                        else if (criterio == CriterioPesos.TRANSBORDOS) penalizacion = 1.0;
+                        else if (criterio == CriterioPesos.COSTO) penalizacion = 2.0;
+                    }
+
+                    if (peso + penalizacion < mejorPeso) {
+                        mejorPeso = peso + penalizacion;
+                        mejorLinea = r.getNombreLinea();
+                    }
+                }
+            }
+            costo += mejorPeso;
+            lineaAnterior = mejorLinea;
+        }
+        return costo;
     }
 
     /**
      * Función: dijkstra
-     * Objetivo: Hallar la ruta más corta o económica desde un origen a un destino. Permite bloquear una ruta específica para forzar la búsqueda de alternativas. Su complejidad es O(E log V).
-     * @param grafo         (Grafo) El sistema de rutas a evaluar.
-     * @param idOrigen      (String) ID de la parada inicial.
-     * @param idDestino     (String) ID de la parada final.
-     * @param criterio      (CriterioPesos) El criterio de peso a minimizar.
-     * @param rutaBloqueada (Ruta) Una ruta específica a ignorar durante el cálculo (útil para el Algoritmo de Yen), o null si es una búsqueda normal.
-     * @return              (ResultadoCamino) La ruta óptima encontrada o null si no hay conexión.
+     * Objetivo: Hallar la ruta más rápida/corta desde un origen a un destino.
+     * Su complejidad es O((V+E) log V). Soporta el bloqueo de nodos y aristas para Yen.
+     * @param grafo             (Grafo) El sistema de rutas a evaluar.
+     * @param idOrigen          (String) ID de la parada inicial.
+     * @param idDestino         (String) ID de la parada final.
+     * @param criterio          (CriterioPesos) El criterio de peso a minimizar.
+     * @param aristasBloqueadas (Set<Ruta>) Aristas prohibidas temporalmente.
+     * @param nodosBloqueados   (Set<String>) Nodos prohibidos temporalmente.
+     * @return                  (ResultadoCamino) La ruta óptima encontrada o null si no hay conexión.
      */
-    private ResultadoCamino dijkstra(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio, Ruta rutaBloqueada) {
+    private ResultadoCamino dijkstra(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio, Set<Ruta> aristasBloqueadas, Set<String> nodosBloqueados) {
+        if (nodosBloqueados.contains(idOrigen) || nodosBloqueados.contains(idDestino)) return null;
+
         Map<String, Double> distancias = new HashMap<>();
         Map<String, String> predecesores = new HashMap<>();
         Map<String, String> lineasLlegada = new HashMap<>();
@@ -73,11 +208,12 @@ public class CalculadoraRutas {
             if (actual.distanciaAcumulada() > distancias.get(u)) continue;
 
             for (Ruta ruta : grafo.getAdyacencia().getOrDefault(u, new HashSet<>())) {
-
-                // ¡MAGIA PARA LAS ALTERNATIVAS! Si esta calle está bloqueada, la ignoramos.
-                if (rutaBloqueada != null && ruta.equals(rutaBloqueada)) continue;
-
                 String v = ruta.getIdDestino();
+
+                // Aplicar los bloqueos de Yen
+                if (aristasBloqueadas.contains(ruta)) continue;
+                if (nodosBloqueados.contains(v)) continue;
+
                 String lineaSiguiente = ruta.getNombreLinea();
                 double pesoArista = (criterio == CriterioPesos.TRANSBORDOS) ? 0.0 : ruta.getValorPeso(criterio);
 
@@ -101,56 +237,20 @@ public class CalculadoraRutas {
     }
 
     /**
-     * Función: obtenerAlternativas
-     * Objetivo: Generar una lista ordenada con múltiples rutas alternativas entre dos puntos utilizando el Algoritmo de Yen y bloqueando aristas secuencialmente.
-     * @param grafo    (Grafo) El grafo sobre el cual calcular las alternativas.
-     * @param origen   (String) ID de la parada de inicio.
-     * @param destino  (String) ID de la parada de destino.
-     * @param criterio (CriterioPesos) El criterio para evaluar el peso de las rutas.
-     * @return         (List<ResultadoCamino>) Lista de rutas alternativas ordenadas de mejor a peor según su costo total.
-     */
-    public List<ResultadoCamino> obtenerAlternativas(Grafo grafo, String origen, String destino, CriterioPesos criterio) {
-        List<ResultadoCamino> alternativas = new ArrayList<>();
-        ResultadoCamino principal = dijkstra(grafo, origen, destino, criterio, null);
-
-        if (principal == null || principal.paradas.size() < 2) return alternativas;
-
-        Set<List<String>> rutasVistas = new HashSet<>();
-        rutasVistas.add(principal.paradas);
-
-        // Bloqueamos un tramo a la vez para encontrar nuevos caminos
-        for (int i = 0; i < principal.paradas.size() - 1; i++) {
-            String u = principal.paradas.get(i);
-            String v = principal.paradas.get(i + 1);
-
-            Ruta tramoABloquear = null;
-            for(Ruta r : grafo.getAdyacencia().get(u)) {
-                if(r.getIdDestino().equals(v)) tramoABloquear = r;
-            }
-
-            ResultadoCamino candidato = dijkstra(grafo, origen, destino, criterio, tramoABloquear);
-
-            // Si encontró una ruta y no es repetida, la guarda
-            if (candidato != null && !rutasVistas.contains(candidato.paradas)) {
-                alternativas.add(candidato);
-                rutasVistas.add(candidato.paradas);
-            }
-        }
-        // Ordenamos la lista de la más barata/rápida a la más costosa
-        alternativas.sort(Comparator.comparingDouble(r -> r.costoTotal));
-        return alternativas;
-    }
-
-    /**
      * Función: bellmanFord
-     * Objetivo: Encontrar la ruta óptima permitiendo el procesamiento de pesos negativos (ej. descuentos en costos). Su complejidad es O(V * E).
-     * @param grafo     (Grafo) La La red de paradas y conexiones.
-     * @param idOrigen  (String) ID del nodo de salida.
-     * @param idDestino (String) ID del nodo de llegada.
-     * @param criterio  (CriterioPesos) Criterio de evaluación de la ruta.
-     * @return          (ResultadoCamino) La ruta calculada con su costo, o null si detecta ciclos negativos o no hay camino.
+     * Objetivo: Encontrar la ruta óptima permitiendo el procesamiento de pesos negativos (ej. descuentos).
+     * Su complejidad es O(V * E). Soporta el bloqueo de nodos y aristas para Yen.
+     * @param grafo             (Grafo) La red de paradas y conexiones.
+     * @param idOrigen          (String) ID del nodo de salida.
+     * @param idDestino         (String) ID del nodo de llegada.
+     * @param criterio          (CriterioPesos) Criterio de evaluación de la ruta.
+     * @param aristasBloqueadas (Set<Ruta>) Aristas prohibidas temporalmente.
+     * @param nodosBloqueados   (Set<String>) Nodos prohibidos temporalmente.
+     * @return                  (ResultadoCamino) La ruta calculada o null.
      */
-    private ResultadoCamino bellmanFord(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio) {
+    private ResultadoCamino bellmanFord(Grafo grafo, String idOrigen, String idDestino, CriterioPesos criterio, Set<Ruta> aristasBloqueadas, Set<String> nodosBloqueados) {
+        if (nodosBloqueados.contains(idOrigen) || nodosBloqueados.contains(idDestino)) return null;
+
         Map<String, Double> distancias = new HashMap<>();
         Map<String, String> predecesores = new HashMap<>();
         Map<String, String> lineasLlegada = new HashMap<>();
@@ -162,8 +262,15 @@ public class CalculadoraRutas {
 
         for (int i = 0; i < V - 1; i++) {
             for (String u : grafo.getAdyacencia().keySet()) {
+                if (nodosBloqueados.contains(u)) continue;
+
                 for (Ruta ruta : grafo.getAdyacencia().get(u)) {
                     String v = ruta.getIdDestino();
+
+                    // Aplicar bloqueos de Yen
+                    if (aristasBloqueadas.contains(ruta)) continue;
+                    if (nodosBloqueados.contains(v)) continue;
+
                     String lineaActual = lineasLlegada.get(u);
                     String lineaSiguiente = ruta.getNombreLinea();
                     double pesoArista = ruta.getValorPeso(criterio);
@@ -176,22 +283,6 @@ public class CalculadoraRutas {
                         predecesores.put(v, u);
                         lineasLlegada.put(v, lineaSiguiente);
                     }
-                }
-            }
-        }
-
-        for (String u : grafo.getAdyacencia().keySet()) {
-            for (Ruta ruta : grafo.getAdyacencia().get(u)) {
-                String v = ruta.getIdDestino();
-                String lineaActual = lineasLlegada.get(u);
-                String lineaSiguiente = ruta.getNombreLinea();
-                double pesoArista = ruta.getValorPeso(criterio);
-
-                double penalizacion = 0.0;
-                if (lineaActual != null && !lineaActual.equals(lineaSiguiente)) penalizacion = 2.0;
-
-                if (distancias.get(u) != Double.MAX_VALUE && distancias.get(u) + pesoArista + penalizacion < distancias.get(v)) {
-                    return null; // Si de verdad entra aquí, hay un ciclo negativo real
                 }
             }
         }
@@ -238,11 +329,10 @@ public class CalculadoraRutas {
      * Función: calcularRutasGlobales
      * Objetivo: Generar una matriz global con las distancias y costos mínimos de todos los nodos contra todos los nodos.
      * En lugar de usar Floyd-Warshall estándar, implementa un enfoque APSP (All-Pairs Shortest Path) ejecutando
-     * el motor principal (Dijkstra/Bellman-Ford) iterativamente. Esto garantiza que el historial de rutas se mantenga
-     * y las penalizaciones por transbordos de líneas se calculen con exactitud matemática. Su complejidad es O(V^2 * E log V).
+     * el motor principal iterativamente. Esto garantiza que el historial de rutas se mantenga.
      * @param grafoActivo   (Grafo) El grafo completo a procesar.
-     * @param criterioViaje (CriterioPesos) El criterio para calcular los pesos entre todos los nodos (ej. Costo, Tiempo).
-     * @return              (ResultadoMatrizGlobal) Objeto contenedor con la matriz de distancias y los índices mapeados.
+     * @param criterioViaje (CriterioPesos) El criterio para calcular los pesos.
+     * @return              (ResultadoMatrizGlobal) Contenedor con la matriz de distancias.
      */
     public ResultadoMatrizGlobal calcularRutasGlobales(Grafo grafoActivo, CriterioPesos criterioViaje) {
         int totalParadas = grafoActivo.getParadas().size();
@@ -258,14 +348,12 @@ public class CalculadoraRutas {
             matrizDistancias[fila][fila] = 0.0;
         }
 
-        // Ejecutamos tu motor perfecto (Dijkstra/Bellman) de todos contra todos
         for (int i = 0; i < totalParadas; i++) {
             String origen = indiceAParadaId.get(i);
             for (int j = 0; j < totalParadas; j++) {
                 if (i == j) continue;
                 String destino = indiceAParadaId.get(j);
 
-                // Aprovechamos que tu método ya calcula transbordos y líneas perfecto
                 ResultadoCamino res = calcularRutaIdeal(grafoActivo, origen, destino, criterioViaje);
                 if (res != null) {
                     matrizDistancias[i][j] = res.costoTotal;
@@ -279,14 +367,11 @@ public class CalculadoraRutas {
      * Función: floydWarshall
      * Objetivo: Calcular la ruta mínima entre TODOS los pares de paradas
      * usando el algoritmo clásico de Floyd-Warshall con tres ciclos anidados.
-     * Nota: No modela penalizaciones por transbordos de línea, ya que esto
-     * requeriría estado adicional por arista (incompatible con la formulación
-     * clásica). Por su incapacidad de calcular penalizaciones e ideas más complejas en los grafos,
-     *  decidimos usar dijkstra().
-     * @param grafoActivo   (Grafo) Red de paradas y conexiones a procesar.
+     * Nota: Por su incapacidad de calcular penalizaciones de transbordos de forma clásica,
+     * se mantiene solo para análisis académico/diagnóstico.
+     * @param grafoActivo   (Grafo) Red de paradas y conexiones.
      * @param criterioViaje (CriterioPesos) Criterio de peso de las aristas.
-     * @return              (ResultadoMatrizGlobal) Matriz de distancias mínimas
-     *                      y mapa de índices.
+     * @return              (ResultadoMatrizGlobal) Matriz de distancias.
      */
     public ResultadoMatrizGlobal floydWarshall(Grafo grafoActivo, CriterioPesos criterioViaje) {
         List<String> indices = new ArrayList<>(grafoActivo.getParadas().keySet());
@@ -295,17 +380,15 @@ public class CalculadoraRutas {
 
         for (int i = 0; i < V; i++) paradaAIndice.put(indices.get(i), i);
 
-        // Inicializamos la matriz: infinito para todo, 0 en la diagonal
         double[][] dist = new double[V][V];
         int[][] siguiente = new int[V][V];
 
         for (int i = 0; i < V; i++) {
-            Arrays.fill(dist[i], Double.MAX_VALUE / 2); // /2 evita overflow al sumar
+            Arrays.fill(dist[i], Double.MAX_VALUE / 2);
             Arrays.fill(siguiente[i], -1);
             dist[i][i] = 0.0;
         }
 
-        // Paso 1: Cargar los pesos reales de las aristas en la matriz
         for (Map.Entry<String, Set<Ruta>> entry : grafoActivo.getAdyacencia().entrySet()) {
             int u = paradaAIndice.get(entry.getKey());
             for (Ruta ruta : entry.getValue()) {
@@ -320,9 +403,6 @@ public class CalculadoraRutas {
             }
         }
 
-        // Paso 2: Los tres ciclos anidados de Floyd-Warshall
-        // Para cada nodo intermedio k, verificamos si ir de i→k→j
-        // es más barato que ir de i→j directamente.
         for (int k = 0; k < V; k++) {
             for (int i = 0; i < V; i++) {
                 for (int j = 0; j < V; j++) {
@@ -361,7 +441,6 @@ public class CalculadoraRutas {
             }
         }
 
-        // Al total de paradas le restamos las que pudimos visitar. Las que sobran, son huérfanas.
         Set<String> huerfanas = new HashSet<>(grafo.getParadas().keySet());
         huerfanas.removeAll(visitados);
         return huerfanas;
