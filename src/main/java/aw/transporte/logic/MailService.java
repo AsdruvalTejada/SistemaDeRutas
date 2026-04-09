@@ -10,7 +10,7 @@ public class MailService {
     private static final String REMITENTE = "wilmaryhdez2006@gmail.com";
     private static final String PASSWORD = "rnrq hama gvel tnoh";
 
-    // Cambiamos el método para que devuelva un código generado
+    // Método para que devuelva un código generado
     public static String enviarCodigoVerificacion(String destinatario, String nombreUsuario) {
 
         // 1. Generamos un código de 6 dígitos aleatorio

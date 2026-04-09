@@ -527,7 +527,7 @@ public class AppController {
         Parada destino = comboRutaDestino.getValue();
 
         if (origen == null || destino == null) {
-            updateStatus(" Seleccione origen y destino para eliminar.");
+            updateStatus("Seleccione origen y destino para eliminar.");
             return;
         }
 
@@ -540,11 +540,14 @@ public class AppController {
 
             if (!huerfanas.isEmpty()) {
                 Alert alerta = new Alert(Alert.AlertType.WARNING);
-                alerta.setTitle("Advertencia Crítica de Conectividad");
-                alerta.setHeaderText("️ Riesgo de Paradas Aisladas");
-                alerta.setContentText("Si eliminas la línea '" + rutaEnEdicion.getNombreLinea() + "', el algoritmo BFS ha detectado que " + huerfanas.size() + " parada(s) quedarán completamente desconectadas del mapa.\n\n¿Estás seguro de que deseas aplicar este cierre vial?");
+                alerta.setTitle("Advertencia Critica de Conectividad");
+                alerta.setHeaderText("Riesgo de Paradas Aisladas");
 
-                ButtonType btnContinuar = new ButtonType("Sí, eliminar", ButtonBar.ButtonData.OK_DONE);
+                alerta.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+
+                alerta.setContentText("Si eliminas la linea '" + rutaEnEdicion.getNombreLinea() + "', se detecta que " + huerfanas.size() + " parada(s) quedaran completamente desconectadas del mapa.\n\n¿Estas seguro de que deseas aplicar este cierre vial?");
+
+                ButtonType btnContinuar = new ButtonType("Si, eliminar", ButtonBar.ButtonData.OK_DONE);
                 ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
                 alerta.getButtonTypes().setAll(btnContinuar, btnCancelar);
 
@@ -552,17 +555,17 @@ public class AppController {
 
                 if (resultado.isPresent() && resultado.get() == btnCancelar) {
                     sistemaInfo.getAdyacencia().get(origen.getId()).add(rutaEnEdicion);
-                    updateStatus(" Eliminación cancelada por seguridad.");
+                    updateStatus("Eliminacion cancelada por seguridad.");
                     return;
                 }
             }
 
             dbGestor.saveGrafo(sistemaInfo);
             dibujarGrafoVisual();
-            evaluarEstadoDeCalle(" Línea '" + rutaEnEdicion.getNombreLinea() + "' eliminada con éxito.");
+            evaluarEstadoDeCalle("Linea '" + rutaEnEdicion.getNombreLinea() + "' eliminada con exito.");
 
         } else {
-            updateStatus(" Seleccione una línea existente de la lista para poder eliminarla.");
+            updateStatus("Seleccione una linea existente de la lista para poder eliminarla.");
         }
     }
 
@@ -585,6 +588,7 @@ public class AppController {
         comboNombreLinea.setEditable(true);
     }
 
+//    Sobrecarga de metodos
     /**
      * Llamada normal cuando el usuario solo está curioseando las calles.
      */
@@ -787,8 +791,7 @@ public class AppController {
             dibujarGrafoConCaminoEspecial(alt.paradas, true);
 
             lblInfoAlternativa.setStyle("-fx-text-fill: #e67e22; -fx-font-weight: bold;");
-            lblInfoAlternativa.setText("Alternativa " + indiceAlternativaActual + " de " + listaAlternativas.size() +
-                    "\n" + obtenerTextoCriterio(criterioMemoria, alt.costoTotal)); // Usa memoria
+            lblInfoAlternativa.setText("Alternativa " + indiceAlternativaActual + " de " + listaAlternativas.size() + "\n" + obtenerTextoCriterio(criterioMemoria, alt.costoTotal)); // Usa memoria
 
             btnElegirAlternativa.setDisable(false);
             updateStatus("Visualizando Alternativa " + indiceAlternativaActual);
@@ -798,11 +801,10 @@ public class AppController {
     /**
      * Función: handleElegirAlternativa
      * Objetivo: Sobrescribir la ruta principal actual con la alternativa visualizada en ese momento
-     * (realizando un swap en las variables de memoria), para confirmarla como el plan de viaje oficial.
+     * (realizando un intercambio en las variables de memoria), para confirmarla como el plan de viaje oficial.
      */
     @FXML
     private void handleElegirAlternativa() {
-        // Protección anti-crashes
         if (indiceAlternativaActual == 0 || listaAlternativas == null || listaAlternativas.isEmpty()) return;
 
         // 1. Guardamos la ruta principal antigua temporalmente
@@ -811,7 +813,7 @@ public class AppController {
         // 2. Fijamos la alternativa elegida como la nueva principal
         rutaPrincipalMemoria = listaAlternativas.get(indiceAlternativaActual - 1);
 
-        // 3. ¡EL TRUCO (SWAP)! Metemos la ruta vieja en el lugar de la alternativa que acabamos de sacar
+        // 3. El intercambio entramos la ruta vieja en el lugar de la alternativa que acabamos de sacar
         listaAlternativas.set(indiceAlternativaActual - 1, rutaVieja);
 
         // 4. La dibujamos de color verde sólido (false = sin puntos)
@@ -889,7 +891,7 @@ public class AppController {
             if (filaElegida != null) {
                 // Si el ID es mayor a 0, significa que eligió una alternativa
                 if (filaElegida.id() > 0) {
-                    // --- ¡AQUÍ ESTÁ EL TRUCO (SWAP)! ---
+                    // --- AQUÍ ESTÁ EL INTERCAMBIO ---
                     CalculadoraRutas.ResultadoCamino rutaVieja = rutaPrincipalMemoria;
                     rutaPrincipalMemoria = listaAlternativas.get(filaElegida.id() - 1);
                     listaAlternativas.set(filaElegida.id() - 1, rutaVieja);
@@ -949,13 +951,14 @@ public class AppController {
 
         Alert alerta = new Alert(Alert.AlertType.INFORMATION);
         alerta.setTitle("Reporte de Auditoría (BFS)");
+        alerta.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
 
         if (huerfanas.isEmpty()) {
-            alerta.setHeaderText(" Estado de la red: SALUDABLE");
+            alerta.setHeaderText("Estado de la red: SALUDABLE");
             alerta.setContentText("Todas las paradas están correctamente conectadas. No hay puntos ciegos en el sistema.");
         } else {
             alerta.setAlertType(Alert.AlertType.WARNING);
-            alerta.setHeaderText("️ Advertencia: Se encontraron paradas huérfanas");
+            alerta.setHeaderText("Advertencia: Se encontraron paradas huerfanas");
 
             // Traducimos los ids a nombres reales para que sea legible
             List<String> nombresHuerfanas = new ArrayList<>();
@@ -983,7 +986,7 @@ public class AppController {
             alerta.setHeaderText(null);
             alerta.setContentText("️ Por favor, seleccione un criterio (Tiempo, Costo, etc.) en el menú desplegable antes de generar la matriz global.");
             alerta.showAndWait();
-            return; // Detenemos la ejecución aquí si no hay criterio seleccionado
+            return;
         }
 
         CalculadoraRutas motor = new CalculadoraRutas();
@@ -1001,6 +1004,7 @@ public class AppController {
 
         int totalNodos = resultadoGlobal.indiceAParadaId.size();
 
+//        Crea las filas y columnas de la matriz
         for (int i = 0; i < totalNodos; i++) {
             final int colIndex = i + 1;
             String nombreDestino = sistemaInfo.getParadas().get(resultadoGlobal.indiceAParadaId.get(i)).getNombre();
@@ -1011,6 +1015,7 @@ public class AppController {
             tabla.getColumns().add(colDinamica);
         }
 
+//        Muestra los valores de la matriz y explica lo que significa cada valor
         ObservableList<String[]> filas = FXCollections.observableArrayList();
         for (int fila = 0; fila < totalNodos; fila++) {
             String[] datosFila = new String[totalNodos + 1];
@@ -1180,7 +1185,7 @@ public class AppController {
         aw.transporte.data.GestorUsuarios gestor = new aw.transporte.data.GestorUsuarios();
         java.util.List<aw.transporte.model.Usuario> lista = gestor.cargarUsuarios();
 
-        // Verificamos que el usuario no exista ya
+        // Verificamos que el usuario no exista ya recorriendolo en la base de datos
         for (aw.transporte.model.Usuario u : lista) {
             if (u.getUsername().equals(user)) {
                 updateStatus(" Error: El usuario ya existe.");
@@ -1301,8 +1306,8 @@ public class AppController {
 
     /**
      * Función: handleCerrarSesion
-     * Objetivo: Terminar la sesión actual, destruir la vista principal y recargar el módulo
-     * FXML de Login en una nueva ventana aislada y segura.
+     * Objetivo: Terminar la sesión actual, cierra la vista principal y recargar el formulario
+     * FXML de Login en una nueva ventana aislada, segura y pequeña.
      */
     private void handleCerrarSesion() {
         try {
