@@ -199,7 +199,7 @@ public class AppController {
                 tabPanePrincipal.getTabs().remove(tabParadas);
                 tabPanePrincipal.getTabs().remove(tabConexiones);
                 tabPanePrincipal.getTabs().remove(tabUsuarios);
-                tabPanePrincipal.getTabs().remove(tabDiagnostico); // <-- Pasajero no ve diagnóstico
+                tabPanePrincipal.getTabs().remove(tabDiagnostico);
             }
             updateStatus("Modo Pasajero: Solo lectura y cálculo de rutas.");
         } else {
@@ -329,8 +329,7 @@ public class AppController {
             return;
         }
 
-        boolean nombreExiste = sistemaInfo.getParadas().values().stream()
-                .anyMatch(p -> !p.getId().equals(paradaSeleccionada.getId()) && p.getNombre().equalsIgnoreCase(nuevoNombre));
+        boolean nombreExiste = sistemaInfo.getParadas().values().stream().anyMatch(p -> !p.getId().equals(paradaSeleccionada.getId()) && p.getNombre().equalsIgnoreCase(nuevoNombre));
 
         if (nombreExiste) {
             Alert alerta = new Alert(Alert.AlertType.WARNING);
@@ -430,6 +429,7 @@ public class AppController {
                 return;
             }
 
+//            Agregamos esta validacion
             if (!validContinuidad(origen.getId(), destino.getId(), nombreLinea)) {
                 Alert alerta = new Alert(Alert.AlertType.ERROR);
                 alerta.setTitle("Error de Continuidad de Red");

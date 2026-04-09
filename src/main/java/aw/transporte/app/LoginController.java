@@ -111,7 +111,7 @@ public class LoginController {
                 // Mostramos la ventanita emergente pidiendo el código
                 javafx.scene.control.TextInputDialog dialog = new javafx.scene.control.TextInputDialog();
                 dialog.setTitle("Verificación de Seguridad");
-                dialog.setHeaderText("🔑 Hemos enviado un código a:\n" + correoDestino);
+                dialog.setHeaderText(" Hemos enviado un código a:\n" + correoDestino);
                 dialog.setContentText("Ingrese el código de 6 dígitos:");
 
                 java.util.Optional<String> resultado = dialog.showAndWait();
